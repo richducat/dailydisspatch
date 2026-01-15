@@ -217,6 +217,19 @@ const generateSatire = (article) => {
 const CONSPIRACY_NOUNS = ['The Globalists', 'Interdimensional Vampires', 'The Water Filters', 'Big Bigfoot', 'The Cloud People', 'Clockwork Elves'];
 const CONSPIRACY_VERBS = ['harvesting', 'programming', 'melting', 'downloading', 'eating', 'suppressing'];
 const CONSPIRACY_OBJECTS = ['your pineal gland', 'freedom', 'the frogs', 'Mars colonies', 'human DNA', 'the supplements'];
+const VALID_TABS = new Set([
+  'home',
+  'tracker',
+  'military',
+  'conspiracy',
+  'finance',
+  'shopping',
+  'satire',
+  'horoscopes',
+  'about',
+  'privacy',
+  'terms'
+]);
 
 // --- HELPER COMPONENTS ---
 
@@ -514,17 +527,17 @@ const Footer = ({ setActiveTab }) => (
         <h5 className="font-bold uppercase text-slate-500 mb-3">Sections</h5>
         <ul className="space-y-2">
           <li onClick={() => setActiveTab('home')} className="hover:text-blue-400 cursor-pointer">Home</li>
-          <li onClick={() => setActiveTab('political')} className="hover:text-blue-400 cursor-pointer">Politics</li>
+          <li onClick={() => setActiveTab('home')} className="hover:text-blue-400 cursor-pointer">Politics</li>
           <li onClick={() => setActiveTab('military')} className="hover:text-blue-400 cursor-pointer">Defense</li>
-          <li onClick={() => setActiveTab('weird')} className="hover:text-blue-400 cursor-pointer">Weird News</li>
+          <li onClick={() => setActiveTab('conspiracy')} className="hover:text-blue-400 cursor-pointer">Weird News</li>
         </ul>
       </div>
       <div>
         <h5 className="font-bold uppercase text-slate-500 mb-3">Company</h5>
         <ul className="space-y-2">
           <li onClick={() => setActiveTab('about')} className="hover:text-blue-400 cursor-pointer">About Us</li>
-          <li onClick={() => setActiveTab('contact')} className="hover:text-blue-400 cursor-pointer">Contact</li>
-          <li onClick={() => setActiveTab('careers')} className="hover:text-blue-400 cursor-pointer">Careers (Lol)</li>
+          <li onClick={() => setActiveTab('about')} className="hover:text-blue-400 cursor-pointer">Contact</li>
+          <li onClick={() => setActiveTab('about')} className="hover:text-blue-400 cursor-pointer">Careers (Lol)</li>
         </ul>
       </div>
       <div>
@@ -532,7 +545,7 @@ const Footer = ({ setActiveTab }) => (
         <ul className="space-y-2">
           <li onClick={() => setActiveTab('privacy')} className="hover:text-blue-400 cursor-pointer">Privacy Policy</li>
           <li onClick={() => setActiveTab('terms')} className="hover:text-blue-400 cursor-pointer">Terms of Service</li>
-          <li onClick={() => setActiveTab('cookie')} className="hover:text-blue-400 cursor-pointer">Cookie Policy</li>
+          <li onClick={() => setActiveTab('privacy')} className="hover:text-blue-400 cursor-pointer">Cookie Policy</li>
         </ul>
       </div>
     </div>
@@ -1026,6 +1039,12 @@ const App = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [tickerItems, setTickerItems] = useState([]);
+
+  useEffect(() => {
+    if (!VALID_TABS.has(activeTab)) {
+      setActiveTab('home');
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_FEEDS.political.url)}`)
