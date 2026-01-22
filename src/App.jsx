@@ -68,6 +68,16 @@ const getArticleImage = (item) => {
   return null;
 };
 
+const getHostname = (link) => {
+  if (!link) return 'unknown source';
+  try {
+    return new URL(link).hostname;
+  } catch (error) {
+    const sanitized = link.replace(/^https?:\/\//, '').split('/')[0];
+    return sanitized || 'unknown source';
+  }
+};
+
 // --- MOCK DATA ---
 
 const GENERATED_ADVERSARIES = [
@@ -352,7 +362,7 @@ const SatiricalReader = ({ article, onBack }) => {
                   </div>
                 </div>
                 <p className="text-sm text-slate-600 italic mb-3">"{article.description ? article.description.replace(/<[^>]*>?/gm, '') : article.title}"</p>
-                <a href={article.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline">Read Full Source at {new URL(article.link || 'http://localhost').hostname} <ExternalLink className="w-3 h-3"/></a>
+                <a href={article.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline">Read Full Source at {getHostname(article.link)} <ExternalLink className="w-3 h-3"/></a>
               </div>
             </div>
             <div className="w-full md:w-64 space-y-6">
