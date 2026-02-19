@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import FinancePage from './FinancePage';
+import ErrorBoundary from './ErrorBoundary.jsx';
 import {
   AlertTriangle,
   Globe,
@@ -788,54 +790,6 @@ const MilitaryDashboard = ({ onArticleSelect, setActiveTab, feed }) => {
   );
 };
 
-const FinancePage = ({ onArticleSelect, setActiveTab }) => {
-  const [news, setNews] = useState([]);
-
-  useEffect(() => {
-    fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_FEEDS.finance.url)}`)
-      .then((res) => res.json())
-      .then((data) => data.status === 'ok' && setNews(data.items.slice(0, 8)));
-  }, []);
-
-  return (
-    <div className="container mx-auto px-4 py-6 max-w-7xl animate-in fade-in slide-in-from-bottom-2 duration-700">
-      <div className="flex flex-col lg:flex-row gap-6">
-        <div className="hidden lg:block w-48 flex-shrink-0 space-y-6"><SidebarNav setActiveTab={setActiveTab} /></div>
-        <div className="flex-1 min-w-0 space-y-6">
-          <div className="bg-slate-900 text-green-400 font-mono text-xs py-2 px-4 rounded overflow-hidden border-b border-green-800 whitespace-nowrap">
-            DISS: <span className="text-red-500">▼ 420.69</span> &nbsp;|&nbsp; STNK: <span className="text-green-500">▲ 9000.00</span> &nbsp;|&nbsp; NFTs: <span className="text-red-500">▼ 0.00</span> &nbsp;|&nbsp; HOPE: <span className="text-slate-500">- STAGNANT</span>
-          </div>
-          <div className="bg-white p-6 rounded shadow border border-slate-200">
-            <h2 className="text-2xl font-black text-slate-900 flex items-center gap-2 mb-6"><TrendingUp className="w-8 h-8 text-green-600" /> Diss-patch Finance</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <h3 className="font-bold text-sm uppercase text-slate-400 border-b pb-2">Market Watch</h3>
-                {news.map((item, i) => (
-                  <div key={i} onClick={() => onArticleSelect(item)} className="flex gap-4 cursor-pointer group hover:bg-slate-50 p-2 rounded transition-colors">
-                    <div className="flex-shrink-0 w-16 h-12 bg-slate-200 rounded overflow-hidden"><NewsImage item={item} category="finance" /></div>
-                    <div><h4 className="font-bold text-slate-800 group-hover:text-green-600 leading-snug text-sm">{item.title}</h4></div>
-                  </div>
-                ))}
-              </div>
-              <div className="space-y-6">
-                <div className="bg-slate-50 p-4 rounded border border-slate-200">
-                  <h4 className="font-black text-slate-800 mb-3 flex items-center gap-2"><DollarSign className="w-4 h-4"/> Top Losers</h4>
-                  <ul className="space-y-2 text-sm"><li className="flex justify-between"><span>Your 401k</span> <span className="text-red-500 font-bold">-12%</span></li><li className="flex justify-between"><span>Tech Bros</span> <span className="text-red-500 font-bold">-45%</span></li></ul>
-                </div>
-                <div className="bg-yellow-50 p-4 rounded border border-yellow-200 text-center">
-                  <h4 className="font-black text-yellow-800 mb-2">Crypto Alert!</h4>
-                  <p className="text-xs text-yellow-700 mb-3">"ScamCoin" dropped. It's a pyramid scheme but digital.</p>
-                  <button className="bg-yellow-600 text-white text-xs font-bold px-4 py-2 rounded hover:bg-yellow-700">Buy The Dip</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 const ShoppingPage = ({ setActiveTab }) => (
   <div className="container mx-auto px-4 py-6 max-w-7xl animate-in fade-in slide-in-from-bottom-2 duration-700">
     <div className="flex flex-col lg:flex-row gap-6">
@@ -1085,7 +1039,11 @@ const App = () => {
             {activeTab === 'tracker' && <WTFWNPage setActiveTab={setActiveTab} />}
             {activeTab === 'military' && <MilitaryDashboard onArticleSelect={setSelectedArticle} setActiveTab={setActiveTab} feed={SATIRE_HEADLINES} />}
             {activeTab === 'conspiracy' && <ConspiracyPage onArticleSelect={setSelectedArticle} setActiveTab={setActiveTab} />}
-            {activeTab === 'finance' && <FinancePage onArticleSelect={setSelectedArticle} setActiveTab={setActiveTab} />}
+            {activeTab === 'finance' && (
+              <ErrorBoundary>
+                <FinancePage onArticleSelect={setSelectedArticle} setActiveTab={setActiveTab} />
+              </ErrorBoundary>
+            )}
             {activeTab === 'shopping' && <ShoppingPage setActiveTab={setActiveTab} />}
             {activeTab === 'satire' && <SatirePage feed={SATIRE_HEADLINES} onArticleSelect={setSelectedArticle} setActiveTab={setActiveTab} />}
             {activeTab === 'horoscopes' && <HoroscopesPage setActiveTab={setActiveTab} />}
