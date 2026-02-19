@@ -28,17 +28,6 @@ import {
   Rocket
 } from 'lucide-react';
 
-
-
-const toNumber = (value, fallback = 0) => {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
-};
-
-const firstChar = (value, fallback = '?') => {
-  if (typeof value !== 'string' || value.length === 0) return fallback;
-  return value[0].toUpperCase();
-};
 const FinancePage = () => {
   const [view, setView] = useState('HOME');
 
@@ -75,53 +64,66 @@ const FinancePage = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const [marketTape, setMarketTape] = useState([
-    { symbol: 'SPX', label: 'S&P 500', price: '5,122', change: '+0.6%', up: true },
-    { symbol: 'NDX', label: 'Nasdaq 100', price: '18,321', change: '+0.9%', up: true },
-    { symbol: 'BTC', label: 'Bitcoin', price: '92,450', change: '+1.2%', up: true },
-    { symbol: 'ETH', label: 'Ethereum', price: '4,110', change: '-0.3%', up: false }
-  ]);
+  useEffect(() => {
+    const container = document.getElementById('tv-ticker-tape');
+    if (container) {
+      container.innerHTML = '';
+      const widgetContainer = document.createElement('div');
+      widgetContainer.className = 'tradingview-widget-container__widget';
+      container.appendChild(widgetContainer);
+
+      const script = document.createElement('script');
+      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        symbols: [
+          { proName: 'FOREXCOM:SPXUSD', title: 'S&P 500' },
+          { proName: 'FOREXCOM:NSXUSD', title: 'Nasdaq 100' },
+          { proName: 'BITSTAMP:BTCUSD', title: 'Bitcoin' },
+          { proName: 'BITSTAMP:ETHUSD', title: 'Ethereum' },
+          { proName: 'BINANCE:SOLUSDT', title: 'Solana' },
+          { proName: 'NASDAQ:NVDA', title: 'NVIDIA' },
+          { proName: 'NASDAQ:TSLA', title: 'Tesla' }
+        ],
+        showSymbolLogo: true,
+        colorTheme: 'dark',
+        isTransparent: false,
+        displayMode: 'adaptive',
+        locale: 'en'
+      });
+      container.appendChild(script);
+    }
+  }, []);
 
   useEffect(() => {
-    const loadTape = async () => {
-      try {
-        const response = await fetch(
-          'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd&include_24hr_change=true'
-        );
-        if (!response.ok) return;
-        const data = await response.json();
-        setMarketTape([
-          { symbol: 'SPX', label: 'S&P 500', price: '5,122', change: '+0.6%', up: true },
-          { symbol: 'NDX', label: 'Nasdaq 100', price: '18,321', change: '+0.9%', up: true },
-          {
-            symbol: 'BTC',
-            label: 'Bitcoin',
-            price: Math.round(data.bitcoin?.usd || 92450).toLocaleString(),
-            change: `${(data.bitcoin?.usd_24h_change || 0).toFixed(2)}%`,
-            up: (data.bitcoin?.usd_24h_change || 0) >= 0
-          },
-          {
-            symbol: 'ETH',
-            label: 'Ethereum',
-            price: Math.round(data.ethereum?.usd || 4110).toLocaleString(),
-            change: `${(data.ethereum?.usd_24h_change || 0).toFixed(2)}%`,
-            up: (data.ethereum?.usd_24h_change || 0) >= 0
-          },
-          {
-            symbol: 'SOL',
-            label: 'Solana',
-            price: Math.round(data.solana?.usd || 145).toLocaleString(),
-            change: `${(data.solana?.usd_24h_change || 0).toFixed(2)}%`,
-            up: (data.solana?.usd_24h_change || 0) >= 0
-          }
-        ]);
-      } catch {
-        // keep fallback tape values to avoid hard failures
-      }
-    };
+    if (view !== 'HOME') return;
 
-    loadTape();
-  }, []);
+    const container = document.getElementById('tv-market-overview');
+    if (container) {
+      container.innerHTML = '';
+      const widgetContainer = document.createElement('div');
+      widgetContainer.className = 'tradingview-widget-container__widget';
+      container.appendChild(widgetContainer);
+
+      const script = document.createElement('script');
+      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-tickers.js';
+      script.async = true;
+      script.innerHTML = JSON.stringify({
+        symbols: [
+          { proName: 'FOREXCOM:SPXUSD', title: 'S&P 500' },
+          { proName: 'FOREXCOM:NSXUSD', title: 'Nasdaq 100' },
+          { proName: 'FX_IDC:EURUSD', title: 'EUR/USD' },
+          { proName: 'BITSTAMP:BTCUSD', title: 'Bitcoin' },
+          { proName: 'BITSTAMP:ETHUSD', title: 'Ethereum' }
+        ],
+        colorTheme: 'dark',
+        isTransparent: true,
+        showSymbolLogo: true,
+        locale: 'en'
+      });
+      container.appendChild(script);
+    }
+  }, [view]);
 
   const generateNews = (symbol, count = 4) => {
     const sources = [
@@ -187,6 +189,41 @@ const FinancePage = () => {
 
   useEffect(() => {
     if (view !== 'DETAIL') return;
+
+    let tvSymbol = `BINANCE:${ticker}USDT`;
+    if (assetType === 'STOCK') {
+      tvSymbol = `NASDAQ:${ticker}`;
+    } else if (liveData?.source === 'DexScreener') {
+      tvSymbol = 'BINANCE:SOLUSDT';
+    }
+
+    const container = document.getElementById('tradingview_widget');
+    if (container) {
+      container.innerHTML = '';
+      const script = document.createElement('script');
+      script.src = 'https://s3.tradingview.com/tv.js';
+      script.async = true;
+      script.onload = () => {
+        if (window.TradingView) {
+          new window.TradingView.widget({
+            width: '100%',
+            height: '100%',
+            symbol: tvSymbol,
+            interval: 'D',
+            timezone: 'Etc/UTC',
+            theme: 'dark',
+            style: '1',
+            locale: 'en',
+            toolbar_bg: '#f1f3f6',
+            enable_publishing: false,
+            allow_symbol_change: true,
+            container_id: 'tradingview_widget',
+            hide_side_toolbar: true
+          });
+        }
+      };
+      container.appendChild(script);
+    }
   }, [ticker, assetType, view, liveData]);
 
   const popularStocks = [
@@ -435,15 +472,7 @@ const FinancePage = () => {
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-emerald-500/30 pb-20">
       <div className="bg-slate-900 border-b border-slate-800 h-10 overflow-hidden relative z-50">
-        <div className="h-full w-full bg-slate-950 flex items-center gap-6 px-4 overflow-x-auto no-scrollbar">
-          {marketTape.map((item) => (
-            <div key={item.symbol} className="flex items-center gap-2 text-xs whitespace-nowrap">
-              <span className="font-bold text-slate-200">{item.label}</span>
-              <span className="font-mono text-slate-300">{item.price}</span>
-              <span className={item.up ? 'text-emerald-400' : 'text-rose-400'}>{item.up && !item.change.startsWith('+') ? `+${item.change}` : item.change}</span>
-            </div>
-          ))}
-        </div>
+        <div id="tv-ticker-tape" className="tradingview-widget-container h-full w-full bg-slate-950"></div>
       </div>
 
       <div className="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 p-4 sticky top-0 z-40 shadow-xl">
@@ -486,7 +515,7 @@ const FinancePage = () => {
                     {item.thumb ? (
                       <img src={item.thumb} alt={item.symbol} className="w-6 h-6 rounded-full" />
                     ) : (
-                      <div className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-[8px] font-bold">{firstChar(item.symbol)}</div>
+                      <div className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-[8px] font-bold">{item.symbol[0]}</div>
                     )}
                     <div>
                       <span className="font-bold text-white text-sm block">{item.name}</span>
@@ -514,18 +543,8 @@ const FinancePage = () => {
       <main className="max-w-7xl mx-auto p-4 space-y-6 mt-2">
         {view === 'HOME' && (
           <div className="space-y-8 animate-fade-in">
-            <div className="w-full bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden p-4">
-              <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-                {marketTape.map((item) => (
-                  <div key={item.symbol} className="rounded-xl border border-slate-800 bg-slate-950 p-3">
-                    <div className="text-xs text-slate-400">{item.symbol}</div>
-                    <div className="text-lg font-bold mt-1">{item.price}</div>
-                    <div className={`text-xs font-semibold ${item.up ? 'text-emerald-400' : 'text-rose-400'}`}>
-                      {item.up && !item.change.startsWith('+') ? `+${item.change}` : item.change}
-                    </div>
-                  </div>
-                ))}
-              </div>
+            <div className="h-[200px] w-full bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden p-2">
+              <div id="tv-market-overview" className="tradingview-widget-container h-full w-full"></div>
             </div>
 
             <div>
@@ -638,31 +657,31 @@ const FinancePage = () => {
                       <div className="flex justify-between items-start mb-2">
                         <div
                           className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                            toNumber(item.price_change_percentage_24h) >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+                            item.price_change_percentage_24h >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
                           }`}
                         >
-                          {firstChar(item.symbol)}
+                          {item.symbol ? item.symbol[0] : '?'}
                         </div>
                         <div
                           className={`text-xs font-bold px-2 py-1 rounded bg-slate-900 ${
-                            toNumber(item.price_change_percentage_24h) >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                            item.price_change_percentage_24h >= 0 ? 'text-emerald-400' : 'text-rose-400'
                           }`}
                         >
-                          {toNumber(item.price_change_percentage_24h) >= 0 ? '+' : ''}
-                          {toNumber(item.price_change_percentage_24h).toFixed(2)}%
+                          {item.price_change_percentage_24h >= 0 ? '+' : ''}
+                          {item.price_change_percentage_24h.toFixed(2)}%
                         </div>
                       </div>
                       <div className="font-bold text-white group-hover:text-emerald-400 truncate">{item.name}</div>
                       <div className="text-xs text-slate-500 mb-2 flex justify-between">
                         <span>{item.symbol}</span>
-                        {Number.isFinite(toNumber(item.score, Number.NaN)) && (
+                        {item.score && (
                           <span className="text-purple-400 flex items-center gap-1">
-                            <Rocket className="w-3 h-3" /> Score: {toNumber(item.score).toFixed(1)}
+                            <Rocket className="w-3 h-3" /> Score: {item.score.toFixed(1)}
                           </span>
                         )}
                       </div>
                       <div className="font-mono text-sm">
-                        ${toNumber(item.current_price) < 0.01 ? toNumber(item.current_price).toFixed(6) : toNumber(item.current_price).toFixed(2)}
+                        ${item.current_price < 0.01 ? item.current_price.toFixed(6) : item.current_price.toFixed(2)}
                       </div>
                     </div>
                   ))}
@@ -775,26 +794,7 @@ const FinancePage = () => {
                     <Loader2 className="w-10 h-10 text-emerald-500 animate-spin" />
                   </div>
                 )}
-                <div className="w-full h-full p-8 flex flex-col justify-center bg-gradient-to-br from-slate-900 to-slate-950">
-                  <div className="text-xs uppercase tracking-wider text-slate-500 mb-3">Price action overview</div>
-                  <div className="relative h-56 border border-slate-800 rounded-xl bg-slate-950/80 overflow-hidden">
-                    <svg viewBox="0 0 600 220" className="w-full h-full">
-                      <polyline
-                        fill="none"
-                        stroke={liveData.isUp ? '#34d399' : '#f87171'}
-                        strokeWidth="4"
-                        points={
-                          liveData.isUp
-                            ? '20,170 80,150 140,160 200,130 260,120 320,100 380,90 440,80 500,70 580,40'
-                            : '20,40 80,70 140,60 200,90 260,100 320,120 380,130 440,150 500,165 580,185'
-                        }
-                      />
-                    </svg>
-                  </div>
-                  <div className="mt-4 text-sm text-slate-400">
-                    Live chart embed was removed for stability; this panel keeps the experience responsive while data loads.
-                  </div>
-                </div>
+                <div id="tradingview_widget" className="w-full h-full"></div>
               </div>
 
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6">
@@ -1125,7 +1125,7 @@ const TickerRow = ({ symbol, name, price, change, isUp }) => (
   <div className="flex items-center justify-between p-3 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors group">
     <div className="flex items-center gap-3">
       <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-400 group-hover:text-white group-hover:bg-slate-700 transition-colors">
-        {firstChar(symbol)}
+        {symbol[0]}
       </div>
       <div>
         <div className="font-bold text-sm text-white group-hover:text-emerald-400 transition-colors">{symbol}</div>

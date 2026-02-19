@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import FinancePage from './FinancePage';
-import ErrorBoundary from './ErrorBoundary.jsx';
 import {
   AlertTriangle,
   Globe,
