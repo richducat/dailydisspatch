@@ -1038,7 +1038,11 @@ const App = () => {
             {activeTab === 'tracker' && <WTFWNPage setActiveTab={setActiveTab} />}
             {activeTab === 'military' && <MilitaryDashboard onArticleSelect={setSelectedArticle} setActiveTab={setActiveTab} feed={SATIRE_HEADLINES} />}
             {activeTab === 'conspiracy' && <ConspiracyPage onArticleSelect={setSelectedArticle} setActiveTab={setActiveTab} />}
-            {activeTab === 'finance' && <FinancePage onArticleSelect={setSelectedArticle} setActiveTab={setActiveTab} />}
+            {activeTab === 'finance' && (
+              <ErrorBoundary>
+                <FinancePage onArticleSelect={setSelectedArticle} setActiveTab={setActiveTab} />
+              </ErrorBoundary>
+            )}
             {activeTab === 'shopping' && <ShoppingPage setActiveTab={setActiveTab} />}
             {activeTab === 'satire' && <SatirePage feed={SATIRE_HEADLINES} onArticleSelect={setSelectedArticle} setActiveTab={setActiveTab} />}
             {activeTab === 'horoscopes' && <HoroscopesPage setActiveTab={setActiveTab} />}
