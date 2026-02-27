@@ -31,16 +31,99 @@ import {
 
 const TOP_TICKER_FALLBACK_ITEMS = ['S&P 500', 'Nasdaq 100', 'Bitcoin', 'Ethereum', 'Solana', 'NVIDIA', 'Tesla'];
 
-const STOCK_TV_EXCHANGE_MAP = {
-  AMC: 'NYSE',
-  GME: 'NYSE',
-  PLTR: 'NYSE',
-  SOFI: 'NASDAQ'
+const TV_CRYPTO_SYMBOL_MAP = {
+  BTC: 'BITSTAMP:BTCUSD',
+  ETH: 'BITSTAMP:ETHUSD',
+  SOL: 'BINANCE:SOLUSDT',
+  BNB: 'BINANCE:BNBUSDT',
+  XRP: 'BITSTAMP:XRPUSD',
+  DOGE: 'BINANCE:DOGEUSDT',
+  ADA: 'BINANCE:ADAUSDT',
+  AVAX: 'BINANCE:AVAXUSDT',
+  LINK: 'BINANCE:LINKUSDT',
+  MATIC: 'BINANCE:MATICUSDT',
+  SHIB: 'BINANCE:SHIBUSDT',
+  PEPE: 'BINANCE:PEPEUSDT'
+};
+
+const DEX_SEARCH_ENDPOINT = 'https://api.dexscreener.com/latest/dex/search?q=';
+const DEX_TOKEN_ENDPOINT = 'https://api.dexscreener.com/latest/dex/tokens/';
+const DEFAULT_DEX_QUERIES = ['solana', 'ethereum', 'bitcoin', 'meme', 'ai'];
+const CHAIN_NEWS_IMAGE = {
+  solana: 'https://images.unsplash.com/photo-1642543492481-44e81e3914a7?w=800&auto=format&fit=crop&q=60',
+  ethereum: 'https://images.unsplash.com/photo-1640340434855-6084b1f4901c?w=800&auto=format&fit=crop&q=60',
+  bsc: 'https://images.unsplash.com/photo-1614028674026-a65e31bfd27c?w=800&auto=format&fit=crop&q=60',
+  base: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&auto=format&fit=crop&q=60'
 };
 
 const safeNumber = (value, fallback = 0) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+const formatCompactUsd = (value) => {
+  const numeric = safeNumber(value, 0);
+  if (numeric <= 0) return 'N/A';
+  if (numeric < 1) return `$${numeric.toFixed(4)}`;
+  return numeric.toLocaleString('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    notation: 'compact',
+    maximumFractionDigits: 2
+  });
+};
+
+const normalizeDexPair = (pair) => {
+  if (!pair?.baseToken?.symbol || !pair?.pairAddress || !pair?.chainId) return null;
+
+  const buys = safeNumber(pair.txns?.h24?.buys, 0);
+  const sells = safeNumber(pair.txns?.h24?.sells, 0);
+
+  return {
+    id: pair.pairAddress,
+    symbol: String(pair.baseToken.symbol).toUpperCase(),
+    name: pair.baseToken.name || pair.baseToken.symbol,
+    type: 'CRYPTO',
+    source: 'DexScreener',
+    pairAddress: pair.pairAddress,
+    tokenAddress: pair.baseToken.address,
+    chainId: pair.chainId,
+    dexId: pair.dexId || 'dex',
+    quoteSymbol: String(pair.quoteToken?.symbol || '').toUpperCase(),
+    url: pair.url || '',
+    imageUrl: pair.info?.imageUrl || '',
+    current_price: safeNumber(pair.priceUsd, 0),
+    price_change_percentage_24h: safeNumber(pair.priceChange?.h24, 0),
+    volume24h: safeNumber(pair.volume?.h24, 0),
+    liquidity: safeNumber(pair.liquidity?.usd, 0),
+    marketCap: safeNumber(pair.marketCap || pair.fdv, 0),
+    txns24h: buys + sells
+  };
+};
+
+const dedupePairs = (pairs) => {
+  const byKey = new Map();
+  pairs.forEach((pair) => {
+    if (!pair) return;
+    const existing = byKey.get(pair.id);
+    if (!existing || pair.liquidity > existing.liquidity) {
+      byKey.set(pair.id, pair);
+    }
+  });
+  return Array.from(byKey.values());
+};
+
+const selectBestPair = (pairs, symbolHint = '') => {
+  if (!Array.isArray(pairs) || pairs.length === 0) return null;
+  const hint = String(symbolHint || '').toUpperCase();
+  const sorted = [...pairs].sort((a, b) => (b.liquidity + b.volume24h) - (a.liquidity + a.volume24h));
+  if (!hint) return sorted[0];
+  return sorted.find((pair) => pair.symbol === hint) || sorted[0];
+};
+
+const getTradingViewSymbol = (symbol) => {
+  const upper = String(symbol || '').toUpperCase();
+  return TV_CRYPTO_SYMBOL_MAP[upper] || null;
 };
 
 const FinancePage = () => {
@@ -52,7 +135,6 @@ const FinancePage = () => {
   const [isSearching, setIsSearching] = useState(false);
 
   const [ticker, setTicker] = useState('BTC');
-  const [assetType, setAssetType] = useState('CRYPTO');
   const [loading, setLoading] = useState(false);
   const [liveData, setLiveData] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
@@ -68,6 +150,14 @@ const FinancePage = () => {
 
   const [analyzing, setAnalyzing] = useState(false);
   const [aiInsights, setAiInsights] = useState(null);
+  const [selectedPair, setSelectedPair] = useState(null);
+  const [trendingPairs, setTrendingPairs] = useState([]);
+  const [marketSnapshot, setMarketSnapshot] = useState({
+    totalPairs: 0,
+    avgChange: 0,
+    leaderSymbol: 'N/A',
+    leaderVolume: 0
+  });
 
   const wrapperRef = useRef(null);
   const aiTimerRef = useRef(null);
@@ -88,6 +178,37 @@ const FinancePage = () => {
       window.clearTimeout(aiTimerRef.current);
     }
   }, []);
+
+  const fetchDexSearchPairs = async (query, signal) => {
+    const response = await fetch(`${DEX_SEARCH_ENDPOINT}${encodeURIComponent(query)}`, { signal });
+    if (!response.ok) throw new Error(`DexScreener search failed (${response.status})`);
+
+    const json = await response.json();
+    const normalized = (json.pairs || [])
+      .map(normalizeDexPair)
+      .filter((pair) => pair && pair.current_price > 0 && pair.liquidity > 5000);
+
+    return dedupePairs(normalized);
+  };
+
+  const fetchDexPairsByTokenAddress = async (tokenAddress, signal) => {
+    const response = await fetch(`${DEX_TOKEN_ENDPOINT}${encodeURIComponent(tokenAddress)}`, { signal });
+    if (!response.ok) throw new Error(`DexScreener token lookup failed (${response.status})`);
+
+    const json = await response.json();
+    const normalized = (json.pairs || [])
+      .map(normalizeDexPair)
+      .filter((pair) => pair && pair.current_price > 0);
+
+    return dedupePairs(normalized);
+  };
+
+  const loadDexUniverse = async (queries, signal) => {
+    const results = await Promise.allSettled(queries.map((query) => fetchDexSearchPairs(query, signal)));
+    const merged = results.flatMap((result) => (result.status === 'fulfilled' ? result.value : []));
+
+    return dedupePairs(merged).filter((pair) => pair.liquidity > 10000);
+  };
 
   useEffect(() => {
     const container = document.getElementById('tv-ticker-tape');
@@ -218,27 +339,122 @@ const FinancePage = () => {
     });
   };
 
+  const generateDexHeadlines = (pair) => {
+    const change = pair.price_change_percentage_24h;
+    const direction = change >= 0 ? 'up' : 'down';
+    const absolute = Math.abs(change).toFixed(2);
+
+    return [
+      {
+        id: `${pair.id}-liq`,
+        source: 'DexScreener',
+        title: `${pair.symbol} liquidity pool at ${formatCompactUsd(pair.liquidity)} across ${pair.dexId}.`,
+        time: 'Live',
+        type: 'Liquidity',
+        imageUrl: pair.imageUrl || CHAIN_NEWS_IMAGE[pair.chainId] || CHAIN_NEWS_IMAGE.solana
+      },
+      {
+        id: `${pair.id}-vol`,
+        source: 'DexScreener',
+        title: `${pair.symbol} ${direction} ${absolute}% in 24h with ${formatCompactUsd(pair.volume24h)} volume.`,
+        time: 'Live',
+        type: change >= 0 ? 'Bullish' : 'Bearish',
+        imageUrl: pair.imageUrl || CHAIN_NEWS_IMAGE[pair.chainId] || CHAIN_NEWS_IMAGE.ethereum
+      },
+      {
+        id: `${pair.id}-txns`,
+        source: 'DexScreener',
+        title: `${pair.txns24h.toLocaleString('en-US')} transactions recorded on ${pair.chainId}.`,
+        time: 'Live',
+        type: 'Flow',
+        imageUrl: pair.imageUrl || CHAIN_NEWS_IMAGE[pair.chainId] || CHAIN_NEWS_IMAGE.base
+      },
+      {
+        id: `${pair.id}-mcap`,
+        source: 'DexScreener',
+        title: `${pair.symbol} market cap estimate sits near ${formatCompactUsd(pair.marketCap)}.`,
+        time: 'Live',
+        type: 'Market Cap',
+        imageUrl: pair.imageUrl || CHAIN_NEWS_IMAGE[pair.chainId] || CHAIN_NEWS_IMAGE.solana
+      }
+    ];
+  };
+
   const [tokenNews, setTokenNews] = useState([]);
   const [feedNews, setFeedNews] = useState([]);
 
   useEffect(() => {
-    const tickers = ['BTC', 'NVDA', 'ETH', 'TSLA', 'AAPL', 'SOL', 'AMD', 'COIN', 'MSFT', 'GOOGL', 'META', 'AMZN'];
-    let allNews = [];
-    tickers.forEach((t) => {
-      allNews = [...allNews, ...generateNews(t, 1)];
-    });
-    setFeedNews(allNews.sort(() => Math.random() - 0.5));
+    let cancelled = false;
+    const abortController = new AbortController();
+
+    const loadHomeMarketData = async () => {
+      try {
+        const universe = await loadDexUniverse(DEFAULT_DEX_QUERIES, abortController.signal);
+        if (cancelled || universe.length === 0) return;
+
+        const movers = [...universe]
+          .sort((a, b) => Math.abs(b.price_change_percentage_24h) - Math.abs(a.price_change_percentage_24h))
+          .slice(0, 12);
+
+        const feed = movers.map((pair) => ({
+          id: pair.id,
+          source: `${pair.dexId.toUpperCase()} • ${pair.chainId.toUpperCase()}`,
+          title: `${pair.name} (${pair.symbol}) ${pair.price_change_percentage_24h >= 0 ? 'gains' : 'drops'} ${Math.abs(pair.price_change_percentage_24h).toFixed(2)}% over 24h.`,
+          time: 'Live',
+          type: pair.price_change_percentage_24h >= 0 ? 'Bullish' : 'Bearish',
+          imageUrl: pair.imageUrl || CHAIN_NEWS_IMAGE[pair.chainId] || CHAIN_NEWS_IMAGE.solana
+        }));
+
+        const trending = [...universe]
+          .sort((a, b) => b.volume24h - a.volume24h)
+          .slice(0, 5);
+
+        const avgChange = universe.reduce((sum, pair) => sum + pair.price_change_percentage_24h, 0) / universe.length;
+        const liquidityLeader = [...universe].sort((a, b) => b.volume24h - a.volume24h)[0];
+
+        setFeedNews(feed);
+        setTrendingPairs(trending);
+        setMarketSnapshot({
+          totalPairs: universe.length,
+          avgChange,
+          leaderSymbol: liquidityLeader?.symbol || 'N/A',
+          leaderVolume: liquidityLeader?.volume24h || 0
+        });
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        console.error('Home market feed failed', error);
+        if (!cancelled) {
+          const fallbackTickers = ['BTC', 'ETH', 'SOL', 'LINK', 'DOGE', 'AVAX'];
+          let fallbackNews = [];
+          fallbackTickers.forEach((symbol) => {
+            fallbackNews = [...fallbackNews, ...generateNews(symbol, 1)];
+          });
+          setFeedNews(fallbackNews);
+        }
+      }
+    };
+
+    loadHomeMarketData();
+    const refreshId = window.setInterval(loadHomeMarketData, 60000);
+
+    return () => {
+      cancelled = true;
+      abortController.abort();
+      window.clearInterval(refreshId);
+    };
   }, []);
 
   useEffect(() => {
     if (view !== 'DETAIL') return;
 
-    let tvSymbol = `BINANCE:${String(ticker).toUpperCase()}USDT`;
-    if (assetType === 'STOCK') {
-      const exchange = STOCK_TV_EXCHANGE_MAP[String(ticker).toUpperCase()] || 'NASDAQ';
-      tvSymbol = `${exchange}:${String(ticker).toUpperCase()}`;
-    } else if (liveData?.source === 'DexScreener') {
-      tvSymbol = 'BINANCE:SOLUSDT';
+    const tvSymbol = getTradingViewSymbol(ticker);
+    const mountPoint = document.getElementById('tradingview_widget');
+    if (!mountPoint) return;
+
+    if (!tvSymbol) {
+      mountPoint.innerHTML = '';
+      setChartErrorMsg(null);
+      return;
     }
 
     let cancelled = false;
@@ -246,7 +462,6 @@ const FinancePage = () => {
 
     const renderWidget = () => {
       if (cancelled) return;
-      const mountPoint = document.getElementById('tradingview_widget');
       if (!mountPoint || !window.TradingView?.widget) {
         setChartErrorMsg('Interactive chart is temporarily unavailable.');
         return;
@@ -321,26 +536,9 @@ const FinancePage = () => {
 
     return () => {
       cancelled = true;
-      const mountPoint = document.getElementById('tradingview_widget');
       if (mountPoint) mountPoint.innerHTML = '';
     };
-  }, [ticker, assetType, view, liveData?.source]);
-
-  const popularStocks = [
-    { id: 'nvidia', symbol: 'NVDA', name: 'NVIDIA Corp', type: 'STOCK' },
-    { id: 'tesla', symbol: 'TSLA', name: 'Tesla Inc', type: 'STOCK' },
-    { id: 'apple', symbol: 'AAPL', name: 'Apple Inc', type: 'STOCK' },
-    { id: 'microsoft', symbol: 'MSFT', name: 'Microsoft Corp', type: 'STOCK' },
-    { id: 'amazon', symbol: 'AMZN', name: 'Amazon.com', type: 'STOCK' },
-    { id: 'meta', symbol: 'META', name: 'Meta Platforms', type: 'STOCK' },
-    { id: 'google', symbol: 'GOOGL', name: 'Alphabet Inc', type: 'STOCK' },
-    { id: 'amd', symbol: 'AMD', name: 'Advanced Micro Devices', type: 'STOCK' },
-    { id: 'coinbase', symbol: 'COIN', name: 'Coinbase Global', type: 'STOCK' },
-    { id: 'gamestop', symbol: 'GME', name: 'GameStop Corp', type: 'STOCK' },
-    { id: 'amc', symbol: 'AMC', name: 'AMC Entertainment', type: 'STOCK' },
-    { id: 'palantir', symbol: 'PLTR', name: 'Palantir Tech', type: 'STOCK' },
-    { id: 'sofi', symbol: 'SOFI', name: 'SoFi Technologies', type: 'STOCK' }
-  ];
+  }, [ticker, view]);
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -353,26 +551,29 @@ const FinancePage = () => {
       }
       setIsSearching(true);
 
-      const searchValue = searchInput.toLowerCase();
-      const stockMatches = popularStocks.filter((s) => s.symbol.toLowerCase().includes(searchValue) || s.name.toLowerCase().includes(searchValue));
-
       try {
-        const response = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(searchInput)}`, {
-          signal: abortController.signal
-        });
-        if (!response.ok) {
-          throw new Error('CoinGecko search unavailable');
-        }
+        const pairs = await fetchDexSearchPairs(searchInput, abortController.signal);
+        const dedupedBySymbol = [];
+        const seen = new Set();
 
-        const data = await response.json();
-        const cryptoMatches = Array.isArray(data.coins) ? data.coins.slice(0, 5) : [];
-        setSuggestions([...stockMatches, ...cryptoMatches]);
-        setShowDropdown(stockMatches.length > 0 || cryptoMatches.length > 0);
+        pairs.forEach((pair) => {
+          const key = `${pair.symbol}-${pair.chainId}`;
+          if (seen.has(key)) return;
+          seen.add(key);
+          dedupedBySymbol.push(pair);
+        });
+
+        const topMatches = dedupedBySymbol
+          .sort((a, b) => (b.liquidity + b.volume24h) - (a.liquidity + a.volume24h))
+          .slice(0, 8);
+
+        setSuggestions(topMatches);
+        setShowDropdown(topMatches.length > 0);
       } catch (error) {
         if (error.name !== 'AbortError') {
           console.error('Search error:', error);
-          setSuggestions(stockMatches);
-          setShowDropdown(stockMatches.length > 0);
+          setSuggestions([]);
+          setShowDropdown(false);
         }
       } finally {
         if (!abortController.signal.aborted) {
@@ -395,91 +596,77 @@ const FinancePage = () => {
     setErrorMsg(null);
 
     try {
+      const queryMap = {
+        VIRAL_STOCKS: ['bitcoin', 'ethereum', 'solana', 'base', 'meme'],
+        MOON_BAG: ['solana'],
+        VOLATILITY: ['solana', 'ethereum', 'base', 'arbitrum'],
+        STOCKS_OPTIONS: ['bitcoin', 'ethereum', 'solana']
+      };
+
+      const universe = await loadDexUniverse(queryMap[type] || DEFAULT_DEX_QUERIES);
+      if (!universe.length) throw new Error('No market data returned');
+
       let results = [];
 
       if (type === 'MOON_BAG') {
-        const response = await fetch('https://api.dexscreener.com/latest/dex/search?q=solana');
-
-        if (!response.ok) throw new Error('DexScreener API Busy');
-
-        const data = await response.json();
-
-        if (data.pairs) {
-          results = data.pairs
-            .filter((p) => p.chainId === 'solana' && p.liquidity && p.liquidity.usd > 1000)
-            .map((p) => {
-              const volume = safeNumber(p.volume?.h24, 0);
-              const liquidity = safeNumber(p.liquidity?.usd, 1);
-              const ratio = volume / liquidity;
-
-              return {
-                id: p.baseToken.address,
-                symbol: p.baseToken.symbol,
-                name: p.baseToken.name,
-                price_change_percentage_24h: safeNumber(p.priceChange?.h24, 0),
-                current_price: safeNumber(p.priceUsd, 0),
-                type: 'CRYPTO',
-                score: ratio,
-                liquidity,
-                source: 'DexScreener'
-              };
-            })
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 6);
-        }
-      } else if (type === 'VIRAL_STOCKS') {
-        await new Promise((r) => setTimeout(r, 600));
-        results = [
-          { id: 'gme', symbol: 'GME', name: 'GameStop', price_change_percentage_24h: 12.4, current_price: 24.5, type: 'STOCK' },
-          { id: 'amc', symbol: 'AMC', name: 'AMC Ent', price_change_percentage_24h: 8.1, current_price: 4.3, type: 'STOCK' },
-          { id: 'pltr', symbol: 'PLTR', name: 'Palantir', price_change_percentage_24h: 5.5, current_price: 28.2, type: 'STOCK' },
-          { id: 'sofi', symbol: 'SOFI', name: 'SoFi Tech', price_change_percentage_24h: 4.1, current_price: 7.8, type: 'STOCK' },
-          { id: 'nvda', symbol: 'NVDA', name: 'NVIDIA', price_change_percentage_24h: 2.2, current_price: 890.1, type: 'STOCK' }
-        ];
-      } else if (type === 'STOCKS_OPTIONS') {
-        await new Promise((r) => setTimeout(r, 450));
-        results = [
-          { id: 'nvda-options', symbol: 'NVDA', name: 'NVIDIA Option Flow', price_change_percentage_24h: 2.2, current_price: 890.1, type: 'STOCK', score: 14.8 },
-          { id: 'tsla-options', symbol: 'TSLA', name: 'Tesla Option Flow', price_change_percentage_24h: -1.5, current_price: 175.3, type: 'STOCK', score: 12.2 },
-          { id: 'coin-options', symbol: 'COIN', name: 'Coinbase Option Flow', price_change_percentage_24h: 3.3, current_price: 243.7, type: 'STOCK', score: 10.7 },
-          { id: 'pltr-options', symbol: 'PLTR', name: 'Palantir Option Flow', price_change_percentage_24h: 5.5, current_price: 28.2, type: 'STOCK', score: 9.9 }
-        ];
-      } else {
-        const response = await fetch(
-          'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false'
-        );
-        if (!response.ok) throw new Error('CoinGecko API Limit');
-
-        const data = await response.json();
-
-        const normalized = data
-          .map((coin) => ({
-            ...coin,
-            price_change_percentage_24h: safeNumber(coin.price_change_percentage_24h, 0),
-            current_price: safeNumber(coin.current_price, 0),
-            type: 'CRYPTO'
+        results = universe
+          .filter((pair) => pair.chainId === 'solana' && pair.liquidity > 15000)
+          .map((pair) => ({
+            ...pair,
+            score: (pair.volume24h / Math.max(pair.liquidity, 1)) + Math.abs(pair.price_change_percentage_24h) / 3
           }))
-          .filter((coin) => coin.current_price > 0);
-
-        if (type === 'MOONSHOTS') {
-          results = normalized.sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h).slice(0, 4);
-        } else if (type === 'VOLATILITY') {
-          results = normalized.sort((a, b) => Math.abs(b.price_change_percentage_24h) - Math.abs(a.price_change_percentage_24h)).slice(0, 4);
-        } else {
-          results = normalized.slice(0, 4);
-        }
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 6);
+      } else if (type === 'STOCKS_OPTIONS') {
+        results = universe
+          .filter((pair) => pair.txns24h > 0)
+          .map((pair) => ({
+            ...pair,
+            score: (pair.txns24h / 100) + (pair.volume24h / Math.max(pair.liquidity, 1))
+          }))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 6);
+      } else if (type === 'VOLATILITY') {
+        results = universe
+          .sort((a, b) => Math.abs(b.price_change_percentage_24h) - Math.abs(a.price_change_percentage_24h))
+          .slice(0, 6);
+      } else {
+        results = universe
+          .map((pair) => ({
+            ...pair,
+            score: pair.txns24h + (pair.volume24h / 10000)
+          }))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 6);
       }
+
       setScannerResults(results);
     } catch (e) {
       console.error('Scanner failed', e);
-      setErrorMsg('Data feed interrupted (API Limit or Network). Please try again in 10s.');
+      setErrorMsg('DexScreener feed interrupted. Please retry in a few seconds.');
     } finally {
       setScanning(false);
     }
   };
 
+  const resolveDexPair = async (token) => {
+    if (token?.pairAddress && token?.chainId) {
+      return token;
+    }
+
+    if (token?.tokenAddress) {
+      const byAddress = await fetchDexPairsByTokenAddress(token.tokenAddress);
+      const matchByAddress = selectBestPair(byAddress, token.symbol);
+      if (matchByAddress) return matchByAddress;
+    }
+
+    const query = token?.symbol || token?.name;
+    if (!query) return null;
+    const bySearch = await fetchDexSearchPairs(query);
+    return selectBestPair(bySearch, token.symbol);
+  };
+
   const handleSelectToken = async (token) => {
-    const isStock = token.type === 'STOCK';
     const displayName = token.name || token.symbol || '';
     setSearchInput(displayName);
     setShowDropdown(false);
@@ -490,7 +677,7 @@ const FinancePage = () => {
     setAiInsights(null);
     setChartErrorMsg(null);
     setView('DETAIL');
-    setTokenNews(generateNews(token.symbol || 'MARKET'));
+    setTokenNews([]);
     setErrorMsg(null);
 
     if (aiTimerRef.current) {
@@ -505,43 +692,24 @@ const FinancePage = () => {
       setAnalyzing(false);
       return;
     }
-    setTicker(selectedTicker);
-    setAssetType(isStock ? 'STOCK' : 'CRYPTO');
-
     try {
-      let processedData;
-
-      if (isStock) {
-        processedData = processData(
-          token.symbol,
-          token.current_price || 150.0,
-          token.price_change_percentage_24h || 2.5,
-          50000000,
-          'Real',
-          2000000000000
-        );
-      } else if (token.source === 'DexScreener') {
-        processedData = processData(token.symbol, token.current_price, token.price_change_percentage_24h, token.liquidity, 'DexScreener', null);
-      } else {
-        const fetchId = token.id;
-        if (!fetchId) {
-          throw new Error('Missing token id');
-        }
-        const response = await fetch(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(fetchId)}&vs_currencies=usd&include_24hr_vol=true&include_24hr_change=true&include_market_cap=true`
-        );
-        if (!response.ok) {
-          throw new Error('CoinGecko pricing unavailable');
-        }
-        const json = await response.json();
-
-        if (json[fetchId]) {
-          const raw = json[fetchId];
-          processedData = processData(selectedTicker, raw.usd, raw.usd_24h_change, raw.usd_24h_vol, 'Real', raw.usd_market_cap);
-        } else {
-          throw new Error('Data missing');
-        }
+      const resolvedPair = await resolveDexPair(token);
+      if (!resolvedPair) {
+        throw new Error('No pair found for this token');
       }
+
+      setSelectedPair(resolvedPair);
+      setTicker(resolvedPair.symbol);
+      setTokenNews(generateDexHeadlines(resolvedPair));
+
+      const processedData = processData(
+        resolvedPair.symbol,
+        resolvedPair.current_price,
+        resolvedPair.price_change_percentage_24h,
+        resolvedPair.volume24h,
+        'DexScreener',
+        resolvedPair.marketCap
+      );
 
       setLiveData(processedData);
       aiTimerRef.current = window.setTimeout(() => {
@@ -551,7 +719,7 @@ const FinancePage = () => {
       }, 1500);
     } catch (error) {
       console.error('Error:', error);
-      setErrorMsg('Could not load deep data for this asset. Try scanning again.');
+      setErrorMsg('Could not resolve live DexScreener data for this token.');
       setAnalyzing(false);
     } finally {
       setLoading(false);
@@ -633,6 +801,11 @@ const FinancePage = () => {
     return { viralReason, whales, entry, stop, target, sentiment, trends, catalysts };
   };
 
+  const tradingViewSymbol = getTradingViewSymbol(ticker);
+  const dexChartUrl = selectedPair?.pairAddress && selectedPair?.chainId
+    ? `https://dexscreener.com/${selectedPair.chainId}/${selectedPair.pairAddress}?embed=1&theme=dark&trades=0&info=0`
+    : null;
+
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-emerald-500/30 pb-20">
       <div className="bg-slate-900 border-b border-slate-800 h-10 overflow-hidden relative z-50">
@@ -666,7 +839,7 @@ const FinancePage = () => {
           </div>
 
           <form className="flex-1 max-w-xl mx-4 relative group" ref={wrapperRef} role="search" onSubmit={(e) => e.preventDefault()}>
-            <label htmlFor="finance-search" className="sr-only">Search stocks or crypto</label>
+            <label htmlFor="finance-search" className="sr-only">Search live crypto pairs</label>
             <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
               <Search className="w-4 h-4 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
             </div>
@@ -680,7 +853,7 @@ const FinancePage = () => {
                 if (suggestions.length > 0) setShowDropdown(true);
               }}
               className="w-full bg-slate-950 border border-slate-700 rounded-full py-2 pl-10 pr-4 text-sm focus:outline-none focus:border-emerald-500 transition-all placeholder:text-slate-600"
-              placeholder="Search stocks (NVDA) or crypto (BTC)..."
+              placeholder="Search live crypto pairs (BTC, SOL, BONK)..."
             />
             {isSearching && <Loader2 className="absolute right-3 top-2.5 w-4 h-4 text-slate-500 animate-spin" />}
             {showDropdown && suggestions.length > 0 && (
@@ -692,16 +865,16 @@ const FinancePage = () => {
                     onClick={() => handleSelectToken(item)}
                     className="w-full text-left px-4 py-3 hover:bg-slate-800 transition-colors flex items-center gap-3 border-b border-slate-800 last:border-0"
                   >
-                    {item.thumb ? (
-                      <img src={item.thumb} alt={item.symbol} className="w-6 h-6 rounded-full" />
+                    {item.imageUrl ? (
+                      <img src={item.imageUrl} alt={item.symbol} className="w-6 h-6 rounded-full" />
                     ) : (
                       <div className="w-6 h-6 rounded-full bg-slate-800 flex items-center justify-center text-[8px] font-bold">{item.symbol[0]}</div>
                     )}
                     <div>
                       <span className="font-bold text-white text-sm block">{item.name}</span>
-                      <span className="text-xs text-slate-500 uppercase">{item.symbol}</span>
+                      <span className="text-xs text-slate-500 uppercase">{item.symbol} / {item.quoteSymbol || 'USD'}</span>
                     </div>
-                    {item.type === 'STOCK' && <span className="ml-auto text-[10px] bg-blue-900 text-blue-300 px-1.5 py-0.5 rounded">STOCK</span>}
+                    <span className="ml-auto text-[10px] bg-emerald-900 text-emerald-300 px-1.5 py-0.5 rounded uppercase">{item.chainId}</span>
                   </button>
                 ))}
               </div>
@@ -814,10 +987,10 @@ const FinancePage = () => {
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                <ScannerButton icon={<TrendingUp className="w-6 h-6" />} title="Viral Stocks" active={activeScan === 'VIRAL_STOCKS'} onClick={() => runScanner('VIRAL_STOCKS')} color="emerald" />
+                <ScannerButton icon={<TrendingUp className="w-6 h-6" />} title="Viral Pairs" active={activeScan === 'VIRAL_STOCKS'} onClick={() => runScanner('VIRAL_STOCKS')} color="emerald" />
                 <ScannerButton icon={<Rocket className="w-6 h-6" />} title="Moon Bag (Solana)" active={activeScan === 'MOON_BAG'} onClick={() => runScanner('MOON_BAG')} color="purple" />
                 <ScannerButton icon={<Flame className="w-6 h-6" />} title="High Volatility" active={activeScan === 'VOLATILITY'} onClick={() => runScanner('VOLATILITY')} color="orange" />
-                <ScannerButton icon={<BarChart3 className="w-6 h-6" />} title="Stock Options" active={activeScan === 'STOCKS_OPTIONS'} onClick={() => runScanner('STOCKS_OPTIONS')} color="blue" />
+                <ScannerButton icon={<BarChart3 className="w-6 h-6" />} title="Txn Flow" active={activeScan === 'STOCKS_OPTIONS'} onClick={() => runScanner('STOCKS_OPTIONS')} color="blue" />
               </div>
 
               {scanning && (
@@ -903,11 +1076,21 @@ const FinancePage = () => {
                     <TrendingUp className="w-4 h-4" /> Trending Tickers
                   </h3>
                   <div className="space-y-1">
-                    <TickerRow symbol="NVDA" name="NVIDIA" price="890.10" change="+2.4%" isUp onClick={() => handleSelectToken({ id: 'nvidia', symbol: 'NVDA', name: 'NVIDIA Corp', type: 'STOCK', current_price: 890.1, price_change_percentage_24h: 2.4 })} />
-                    <TickerRow symbol="BTC" name="Bitcoin" price="92,450" change="+1.2%" isUp onClick={() => handleSelectToken({ id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', type: 'CRYPTO' })} />
-                    <TickerRow symbol="GME" name="GameStop" price="24.50" change="+12.4%" isUp onClick={() => handleSelectToken({ id: 'gamestop', symbol: 'GME', name: 'GameStop Corp', type: 'STOCK', current_price: 24.5, price_change_percentage_24h: 12.4 })} />
-                    <TickerRow symbol="TSLA" name="Tesla" price="175.30" change="-1.5%" isUp={false} onClick={() => handleSelectToken({ id: 'tesla', symbol: 'TSLA', name: 'Tesla Inc', type: 'STOCK', current_price: 175.3, price_change_percentage_24h: -1.5 })} />
-                    <TickerRow symbol="SOL" name="Solana" price="145.20" change="+5.1%" isUp onClick={() => handleSelectToken({ id: 'solana', symbol: 'SOL', name: 'Solana', type: 'CRYPTO' })} />
+                    {trendingPairs.length > 0 ? (
+                      trendingPairs.map((pair) => (
+                        <TickerRow
+                          key={pair.id}
+                          symbol={pair.symbol}
+                          name={`${pair.name} (${pair.chainId})`}
+                          price={pair.current_price < 1 ? pair.current_price.toFixed(4) : pair.current_price.toLocaleString('en-US', { maximumFractionDigits: 2 })}
+                          change={`${pair.price_change_percentage_24h >= 0 ? '+' : ''}${pair.price_change_percentage_24h.toFixed(2)}%`}
+                          isUp={pair.price_change_percentage_24h >= 0}
+                          onClick={() => handleSelectToken(pair)}
+                        />
+                      ))
+                    ) : (
+                      <div className="text-xs text-slate-500 px-2 py-3">Loading live pairs...</div>
+                    )}
                   </div>
                 </div>
 
@@ -923,9 +1106,22 @@ const FinancePage = () => {
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
                   <div className="text-[10px] text-slate-500 uppercase mb-2">Market Snapshot</div>
                   <div className="rounded-lg border border-slate-700 bg-slate-950 p-4 text-left space-y-2">
-                    <div className="text-xs text-slate-400">US 10Y Yield</div>
-                    <div className="text-lg font-mono text-white">4.12%</div>
-                    <div className="text-xs text-slate-500">Refreshes with next market data cycle.</div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400">Tracked Pairs</span>
+                      <span className="text-white font-mono">{marketSnapshot.totalPairs}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400">Avg 24h Move</span>
+                      <span className={`font-mono ${marketSnapshot.avgChange >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        {marketSnapshot.avgChange >= 0 ? '+' : ''}
+                        {marketSnapshot.avgChange.toFixed(2)}%
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-slate-400">Top Volume</span>
+                      <span className="text-white font-mono">{marketSnapshot.leaderSymbol}</span>
+                    </div>
+                    <div className="text-xs text-slate-500">24h Volume: {formatCompactUsd(marketSnapshot.leaderVolume)}</div>
                   </div>
                 </div>
               </aside>
@@ -984,6 +1180,14 @@ const FinancePage = () => {
                     <div className={`text-lg font-bold ${liveData.momentumScore > 70 ? 'text-purple-400' : 'text-blue-400'}`}>{liveData.momentumLabel}</div>
                   </div>
                 </div>
+                {selectedPair?.url && (
+                  <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
+                    <span className="text-slate-500">Live data source: DexScreener</span>
+                    <a href={selectedPair.url} target="_blank" rel="noreferrer" className="text-emerald-400 hover:text-emerald-300 font-bold">
+                      Open Pair
+                    </a>
+                  </div>
+                )}
               </div>
               <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden h-[500px] shadow-lg relative">
                 {loading && (
@@ -999,7 +1203,21 @@ const FinancePage = () => {
                     </div>
                   </div>
                 )}
-                <div id="tradingview_widget" className="w-full h-full"></div>
+                {tradingViewSymbol ? (
+                  <div id="tradingview_widget" className="w-full h-full"></div>
+                ) : dexChartUrl ? (
+                  <iframe
+                    title={`${liveData.symbol} dex chart`}
+                    src={dexChartUrl}
+                    className="w-full h-full border-0"
+                    loading="lazy"
+                    allow="clipboard-write"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-500 text-sm">
+                    No live chart is available for this token yet.
+                  </div>
+                )}
               </div>
 
               <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6">
