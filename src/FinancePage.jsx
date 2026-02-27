@@ -25,8 +25,23 @@ import {
   ArrowLeft,
   Globe,
   Clock,
-  Rocket
+  Rocket,
+  WifiOff
 } from 'lucide-react';
+
+const TOP_TICKER_FALLBACK_ITEMS = ['S&P 500', 'Nasdaq 100', 'Bitcoin', 'Ethereum', 'Solana', 'NVIDIA', 'Tesla'];
+
+const STOCK_TV_EXCHANGE_MAP = {
+  AMC: 'NYSE',
+  GME: 'NYSE',
+  PLTR: 'NYSE',
+  SOFI: 'NASDAQ'
+};
+
+const safeNumber = (value, fallback = 0) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
 
 const FinancePage = () => {
   const [view, setView] = useState('HOME');
@@ -41,6 +56,9 @@ const FinancePage = () => {
   const [loading, setLoading] = useState(false);
   const [liveData, setLiveData] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
+  const [chartErrorMsg, setChartErrorMsg] = useState(null);
+  const [topWidgetOffline, setTopWidgetOffline] = useState(false);
+  const [overviewWidgetOffline, setOverviewWidgetOffline] = useState(false);
 
   const [isProMode, setIsProMode] = useState(true);
   const [scannerResults, setScannerResults] = useState([]);
@@ -52,6 +70,7 @@ const FinancePage = () => {
   const [aiInsights, setAiInsights] = useState(null);
 
   const wrapperRef = useRef(null);
+  const aiTimerRef = useRef(null);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -64,65 +83,89 @@ const FinancePage = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  useEffect(() => () => {
+    if (aiTimerRef.current) {
+      window.clearTimeout(aiTimerRef.current);
+    }
+  }, []);
+
   useEffect(() => {
     const container = document.getElementById('tv-ticker-tape');
-    if (container) {
-      container.innerHTML = '';
-      const widgetContainer = document.createElement('div');
-      widgetContainer.className = 'tradingview-widget-container__widget';
-      container.appendChild(widgetContainer);
+    if (!container) return;
 
-      const script = document.createElement('script');
-      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
-      script.async = true;
-      script.innerHTML = JSON.stringify({
-        symbols: [
-          { proName: 'FOREXCOM:SPXUSD', title: 'S&P 500' },
-          { proName: 'FOREXCOM:NSXUSD', title: 'Nasdaq 100' },
-          { proName: 'BITSTAMP:BTCUSD', title: 'Bitcoin' },
-          { proName: 'BITSTAMP:ETHUSD', title: 'Ethereum' },
-          { proName: 'BINANCE:SOLUSDT', title: 'Solana' },
-          { proName: 'NASDAQ:NVDA', title: 'NVIDIA' },
-          { proName: 'NASDAQ:TSLA', title: 'Tesla' }
-        ],
-        showSymbolLogo: true,
-        colorTheme: 'dark',
-        isTransparent: false,
-        displayMode: 'adaptive',
-        locale: 'en'
-      });
-      container.appendChild(script);
-    }
+    setTopWidgetOffline(false);
+    container.innerHTML = '';
+    const widgetContainer = document.createElement('div');
+    widgetContainer.className = 'tradingview-widget-container__widget';
+    container.appendChild(widgetContainer);
+
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
+    script.async = true;
+    script.innerHTML = JSON.stringify({
+      symbols: [
+        { proName: 'FOREXCOM:SPXUSD', title: 'S&P 500' },
+        { proName: 'FOREXCOM:NSXUSD', title: 'Nasdaq 100' },
+        { proName: 'BITSTAMP:BTCUSD', title: 'Bitcoin' },
+        { proName: 'BITSTAMP:ETHUSD', title: 'Ethereum' },
+        { proName: 'BINANCE:SOLUSDT', title: 'Solana' },
+        { proName: 'NASDAQ:NVDA', title: 'NVIDIA' },
+        { proName: 'NASDAQ:TSLA', title: 'Tesla' }
+      ],
+      showSymbolLogo: true,
+      colorTheme: 'dark',
+      isTransparent: false,
+      displayMode: 'adaptive',
+      locale: 'en'
+    });
+
+    script.onerror = () => {
+      setTopWidgetOffline(true);
+    };
+
+    container.appendChild(script);
+
+    return () => {
+      container.innerHTML = '';
+    };
   }, []);
 
   useEffect(() => {
     if (view !== 'HOME') return;
 
     const container = document.getElementById('tv-market-overview');
-    if (container) {
-      container.innerHTML = '';
-      const widgetContainer = document.createElement('div');
-      widgetContainer.className = 'tradingview-widget-container__widget';
-      container.appendChild(widgetContainer);
+    if (!container) return;
 
-      const script = document.createElement('script');
-      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-tickers.js';
-      script.async = true;
-      script.innerHTML = JSON.stringify({
-        symbols: [
-          { proName: 'FOREXCOM:SPXUSD', title: 'S&P 500' },
-          { proName: 'FOREXCOM:NSXUSD', title: 'Nasdaq 100' },
-          { proName: 'FX_IDC:EURUSD', title: 'EUR/USD' },
-          { proName: 'BITSTAMP:BTCUSD', title: 'Bitcoin' },
-          { proName: 'BITSTAMP:ETHUSD', title: 'Ethereum' }
-        ],
-        colorTheme: 'dark',
-        isTransparent: true,
-        showSymbolLogo: true,
-        locale: 'en'
-      });
-      container.appendChild(script);
-    }
+    setOverviewWidgetOffline(false);
+    container.innerHTML = '';
+    const widgetContainer = document.createElement('div');
+    widgetContainer.className = 'tradingview-widget-container__widget';
+    container.appendChild(widgetContainer);
+
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-tickers.js';
+    script.async = true;
+    script.innerHTML = JSON.stringify({
+      symbols: [
+        { proName: 'FOREXCOM:SPXUSD', title: 'S&P 500' },
+        { proName: 'FOREXCOM:NSXUSD', title: 'Nasdaq 100' },
+        { proName: 'FX_IDC:EURUSD', title: 'EUR/USD' },
+        { proName: 'BITSTAMP:BTCUSD', title: 'Bitcoin' },
+        { proName: 'BITSTAMP:ETHUSD', title: 'Ethereum' }
+      ],
+      colorTheme: 'dark',
+      isTransparent: true,
+      showSymbolLogo: true,
+      locale: 'en'
+    });
+    script.onerror = () => {
+      setOverviewWidgetOffline(true);
+    };
+    container.appendChild(script);
+
+    return () => {
+      container.innerHTML = '';
+    };
   }, [view]);
 
   const generateNews = (symbol, count = 4) => {
@@ -190,41 +233,98 @@ const FinancePage = () => {
   useEffect(() => {
     if (view !== 'DETAIL') return;
 
-    let tvSymbol = `BINANCE:${ticker}USDT`;
+    let tvSymbol = `BINANCE:${String(ticker).toUpperCase()}USDT`;
     if (assetType === 'STOCK') {
-      tvSymbol = `NASDAQ:${ticker}`;
+      const exchange = STOCK_TV_EXCHANGE_MAP[String(ticker).toUpperCase()] || 'NASDAQ';
+      tvSymbol = `${exchange}:${String(ticker).toUpperCase()}`;
     } else if (liveData?.source === 'DexScreener') {
       tvSymbol = 'BINANCE:SOLUSDT';
     }
 
-    const container = document.getElementById('tradingview_widget');
-    if (container) {
-      container.innerHTML = '';
-      const script = document.createElement('script');
-      script.src = 'https://s3.tradingview.com/tv.js';
-      script.async = true;
-      script.onload = () => {
-        if (window.TradingView) {
-          new window.TradingView.widget({
-            width: '100%',
-            height: '100%',
-            symbol: tvSymbol,
-            interval: 'D',
-            timezone: 'Etc/UTC',
-            theme: 'dark',
-            style: '1',
-            locale: 'en',
-            toolbar_bg: '#f1f3f6',
-            enable_publishing: false,
-            allow_symbol_change: true,
-            container_id: 'tradingview_widget',
-            hide_side_toolbar: true
-          });
+    let cancelled = false;
+    setChartErrorMsg(null);
+
+    const renderWidget = () => {
+      if (cancelled) return;
+      const mountPoint = document.getElementById('tradingview_widget');
+      if (!mountPoint || !window.TradingView?.widget) {
+        setChartErrorMsg('Interactive chart is temporarily unavailable.');
+        return;
+      }
+
+      mountPoint.innerHTML = '';
+      try {
+        new window.TradingView.widget({
+          width: '100%',
+          height: '100%',
+          symbol: tvSymbol,
+          interval: 'D',
+          timezone: 'Etc/UTC',
+          theme: 'dark',
+          style: '1',
+          locale: 'en',
+          toolbar_bg: '#f1f3f6',
+          enable_publishing: false,
+          allow_symbol_change: true,
+          container_id: 'tradingview_widget',
+          hide_side_toolbar: true
+        });
+      } catch (error) {
+        console.error('TradingView widget failed to render', error);
+        setChartErrorMsg('Unable to render chart for this symbol right now.');
+      }
+    };
+
+    const loadTvScript = () =>
+      new Promise((resolve, reject) => {
+        if (window.TradingView?.widget) {
+          resolve();
+          return;
         }
-      };
-      container.appendChild(script);
-    }
-  }, [ticker, assetType, view, liveData]);
+
+        const timeoutId = window.setTimeout(() => {
+          reject(new Error('TradingView script timed out'));
+        }, 6000);
+        const onLoad = () => {
+          window.clearTimeout(timeoutId);
+          resolve();
+        };
+        const onError = () => {
+          window.clearTimeout(timeoutId);
+          reject(new Error('TradingView script failed'));
+        };
+
+        const existing = document.querySelector('script[data-tv-script="core"]');
+        if (existing) {
+          existing.addEventListener('load', onLoad, { once: true });
+          existing.addEventListener('error', onError, { once: true });
+          return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://s3.tradingview.com/tv.js';
+        script.async = true;
+        script.dataset.tvScript = 'core';
+        script.addEventListener('load', onLoad, { once: true });
+        script.addEventListener('error', onError, { once: true });
+        document.body.appendChild(script);
+      });
+
+    loadTvScript()
+      .then(renderWidget)
+      .catch((error) => {
+        console.error(error);
+        if (!cancelled) {
+          setChartErrorMsg('Chart feed failed to load. Please try again.');
+        }
+      });
+
+    return () => {
+      cancelled = true;
+      const mountPoint = document.getElementById('tradingview_widget');
+      if (mountPoint) mountPoint.innerHTML = '';
+    };
+  }, [ticker, assetType, view, liveData?.source]);
 
   const popularStocks = [
     { id: 'nvidia', symbol: 'NVDA', name: 'NVIDIA Corp', type: 'STOCK' },
@@ -243,33 +343,49 @@ const FinancePage = () => {
   ];
 
   useEffect(() => {
+    const abortController = new AbortController();
+
     const fetchSuggestions = async () => {
       if (searchInput.length < 2) {
         setSuggestions([]);
+        setShowDropdown(false);
         return;
       }
       setIsSearching(true);
 
-      const stockMatches = popularStocks.filter(
-        (s) => s.symbol.toLowerCase().includes(searchInput.toLowerCase()) || s.name.toLowerCase().includes(searchInput.toLowerCase())
-      );
+      const searchValue = searchInput.toLowerCase();
+      const stockMatches = popularStocks.filter((s) => s.symbol.toLowerCase().includes(searchValue) || s.name.toLowerCase().includes(searchValue));
 
       try {
-        const response = await fetch(`https://api.coingecko.com/api/v3/search?query=${searchInput}`);
+        const response = await fetch(`https://api.coingecko.com/api/v3/search?query=${encodeURIComponent(searchInput)}`, {
+          signal: abortController.signal
+        });
+        if (!response.ok) {
+          throw new Error('CoinGecko search unavailable');
+        }
+
         const data = await response.json();
-        const cryptoMatches = data.coins ? data.coins.slice(0, 5) : [];
+        const cryptoMatches = Array.isArray(data.coins) ? data.coins.slice(0, 5) : [];
         setSuggestions([...stockMatches, ...cryptoMatches]);
-        setShowDropdown(true);
+        setShowDropdown(stockMatches.length > 0 || cryptoMatches.length > 0);
       } catch (error) {
-        console.error('Search error:', error);
-        setSuggestions(stockMatches);
-        setShowDropdown(true);
+        if (error.name !== 'AbortError') {
+          console.error('Search error:', error);
+          setSuggestions(stockMatches);
+          setShowDropdown(stockMatches.length > 0);
+        }
       } finally {
-        setIsSearching(false);
+        if (!abortController.signal.aborted) {
+          setIsSearching(false);
+        }
       }
     };
-    const timeoutId = setTimeout(fetchSuggestions, 400);
-    return () => clearTimeout(timeoutId);
+
+    const timeoutId = window.setTimeout(fetchSuggestions, 400);
+    return () => {
+      window.clearTimeout(timeoutId);
+      abortController.abort();
+    };
   }, [searchInput]);
 
   const runScanner = async (type) => {
@@ -292,16 +408,16 @@ const FinancePage = () => {
           results = data.pairs
             .filter((p) => p.chainId === 'solana' && p.liquidity && p.liquidity.usd > 1000)
             .map((p) => {
-              const volume = p.volume?.h24 || 0;
-              const liquidity = p.liquidity.usd || 1;
+              const volume = safeNumber(p.volume?.h24, 0);
+              const liquidity = safeNumber(p.liquidity?.usd, 1);
               const ratio = volume / liquidity;
 
               return {
                 id: p.baseToken.address,
                 symbol: p.baseToken.symbol,
                 name: p.baseToken.name,
-                price_change_percentage_24h: p.priceChange?.h24 || 0,
-                current_price: parseFloat(p.priceUsd),
+                price_change_percentage_24h: safeNumber(p.priceChange?.h24, 0),
+                current_price: safeNumber(p.priceUsd, 0),
                 type: 'CRYPTO',
                 score: ratio,
                 liquidity,
@@ -320,6 +436,14 @@ const FinancePage = () => {
           { id: 'sofi', symbol: 'SOFI', name: 'SoFi Tech', price_change_percentage_24h: 4.1, current_price: 7.8, type: 'STOCK' },
           { id: 'nvda', symbol: 'NVDA', name: 'NVIDIA', price_change_percentage_24h: 2.2, current_price: 890.1, type: 'STOCK' }
         ];
+      } else if (type === 'STOCKS_OPTIONS') {
+        await new Promise((r) => setTimeout(r, 450));
+        results = [
+          { id: 'nvda-options', symbol: 'NVDA', name: 'NVIDIA Option Flow', price_change_percentage_24h: 2.2, current_price: 890.1, type: 'STOCK', score: 14.8 },
+          { id: 'tsla-options', symbol: 'TSLA', name: 'Tesla Option Flow', price_change_percentage_24h: -1.5, current_price: 175.3, type: 'STOCK', score: 12.2 },
+          { id: 'coin-options', symbol: 'COIN', name: 'Coinbase Option Flow', price_change_percentage_24h: 3.3, current_price: 243.7, type: 'STOCK', score: 10.7 },
+          { id: 'pltr-options', symbol: 'PLTR', name: 'Palantir Option Flow', price_change_percentage_24h: 5.5, current_price: 28.2, type: 'STOCK', score: 9.9 }
+        ];
       } else {
         const response = await fetch(
           'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=100&page=1&sparkline=false'
@@ -328,10 +452,21 @@ const FinancePage = () => {
 
         const data = await response.json();
 
+        const normalized = data
+          .map((coin) => ({
+            ...coin,
+            price_change_percentage_24h: safeNumber(coin.price_change_percentage_24h, 0),
+            current_price: safeNumber(coin.current_price, 0),
+            type: 'CRYPTO'
+          }))
+          .filter((coin) => coin.current_price > 0);
+
         if (type === 'MOONSHOTS') {
-          results = data.sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h).slice(0, 4);
+          results = normalized.sort((a, b) => b.price_change_percentage_24h - a.price_change_percentage_24h).slice(0, 4);
         } else if (type === 'VOLATILITY') {
-          results = data.sort((a, b) => Math.abs(b.price_change_percentage_24h) - Math.abs(a.price_change_percentage_24h)).slice(0, 4);
+          results = normalized.sort((a, b) => Math.abs(b.price_change_percentage_24h) - Math.abs(a.price_change_percentage_24h)).slice(0, 4);
+        } else {
+          results = normalized.slice(0, 4);
         }
       }
       setScannerResults(results);
@@ -345,17 +480,31 @@ const FinancePage = () => {
 
   const handleSelectToken = async (token) => {
     const isStock = token.type === 'STOCK';
-    setSearchInput(token.name);
+    const displayName = token.name || token.symbol || '';
+    setSearchInput(displayName);
     setShowDropdown(false);
     setLoading(true);
     setScannerResults([]);
     setActiveScan(null);
     setAnalyzing(true);
+    setAiInsights(null);
+    setChartErrorMsg(null);
     setView('DETAIL');
-    setTokenNews(generateNews(token.symbol));
+    setTokenNews(generateNews(token.symbol || 'MARKET'));
     setErrorMsg(null);
 
-    const selectedTicker = token.symbol;
+    if (aiTimerRef.current) {
+      window.clearTimeout(aiTimerRef.current);
+      aiTimerRef.current = null;
+    }
+
+    const selectedTicker = String(token.symbol || '').toUpperCase();
+    if (!selectedTicker) {
+      setErrorMsg('Invalid symbol received. Please try another asset.');
+      setLoading(false);
+      setAnalyzing(false);
+      return;
+    }
     setTicker(selectedTicker);
     setAssetType(isStock ? 'STOCK' : 'CRYPTO');
 
@@ -375,9 +524,15 @@ const FinancePage = () => {
         processedData = processData(token.symbol, token.current_price, token.price_change_percentage_24h, token.liquidity, 'DexScreener', null);
       } else {
         const fetchId = token.id;
+        if (!fetchId) {
+          throw new Error('Missing token id');
+        }
         const response = await fetch(
-          `https://api.coingecko.com/api/v3/simple/price?ids=${fetchId}&vs_currencies=usd&include_24hr_vol=true&include_24hr_change=true&include_market_cap=true`
+          `https://api.coingecko.com/api/v3/simple/price?ids=${encodeURIComponent(fetchId)}&vs_currencies=usd&include_24hr_vol=true&include_24hr_change=true&include_market_cap=true`
         );
+        if (!response.ok) {
+          throw new Error('CoinGecko pricing unavailable');
+        }
         const json = await response.json();
 
         if (json[fetchId]) {
@@ -389,53 +544,61 @@ const FinancePage = () => {
       }
 
       setLiveData(processedData);
-      setTimeout(() => {
+      aiTimerRef.current = window.setTimeout(() => {
         setAiInsights(generateAiInsights(processedData));
         setAnalyzing(false);
+        aiTimerRef.current = null;
       }, 1500);
     } catch (error) {
       console.error('Error:', error);
       setErrorMsg('Could not load deep data for this asset. Try scanning again.');
-      setLoading(false);
+      setAnalyzing(false);
     } finally {
       setLoading(false);
     }
   };
 
   const processData = (sym, price, changePct, vol, source, mcap) => {
-    const isUp = changePct >= 0;
-    const momentumScore = Math.min(Math.abs(changePct) * 5, 100);
+    const normalizedPrice = safeNumber(price, 0);
+    const normalizedChange = safeNumber(changePct, 0);
+    const normalizedVolume = safeNumber(vol, 0);
+    const normalizedMcap = safeNumber(mcap, 0);
+
+    const isUp = normalizedChange >= 0;
+    const momentumScore = Math.min(Math.abs(normalizedChange) * 5, 100);
     let momentumLabel = 'Stable';
     if (momentumScore > 30) momentumLabel = 'Building';
     if (momentumScore > 60) momentumLabel = 'Viral / Surge';
     if (momentumScore > 90) momentumLabel = 'Extreme / FOMO';
 
     let retailScore = 50;
-    if (Math.abs(changePct) > 10) retailScore += 30;
-    if (mcap && mcap < 1000000000) retailScore += 20;
+    if (Math.abs(normalizedChange) > 10) retailScore += 30;
+    if (normalizedMcap > 0 && normalizedMcap < 1000000000) retailScore += 20;
     retailScore = Math.min(Math.max(retailScore, 0), 100);
 
     const risks = [];
-    if (Math.abs(changePct) > 15) risks.push({ type: 'Vol', text: 'Extreme Volatility (Pump Risk)' });
-    if (mcap && mcap < 50000000) risks.push({ type: 'Liq', text: 'Low Liquidity (Trap Risk)' });
-    if (!isUp && Math.abs(changePct) > 10) risks.push({ type: 'Dump', text: 'Falling Knife Warning' });
+    if (Math.abs(normalizedChange) > 15) risks.push({ type: 'Vol', text: 'Extreme Volatility (Pump Risk)' });
+    if (normalizedMcap > 0 && normalizedMcap < 50000000) risks.push({ type: 'Liq', text: 'Low Liquidity (Trap Risk)' });
+    if (!isUp && Math.abs(normalizedChange) > 10) risks.push({ type: 'Dump', text: 'Falling Knife Warning' });
     if (risks.length === 0) risks.push({ type: 'Safe', text: 'No immediate red flags detected.' });
 
-    let formattedPrice = price;
-    if (price < 0.0001) formattedPrice = `$${price.toFixed(8)}`;
-    else if (price < 0.01) formattedPrice = `$${price.toFixed(6)}`;
-    else if (price < 1) formattedPrice = `$${price.toFixed(4)}`;
-    else formattedPrice = price.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    let formattedPrice = 'N/A';
+    if (normalizedPrice > 0) {
+      if (normalizedPrice < 0.0001) formattedPrice = `$${normalizedPrice.toFixed(8)}`;
+      else if (normalizedPrice < 0.01) formattedPrice = `$${normalizedPrice.toFixed(6)}`;
+      else if (normalizedPrice < 1) formattedPrice = `$${normalizedPrice.toFixed(4)}`;
+      else formattedPrice = normalizedPrice.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    }
 
     return {
-      symbol: sym.toUpperCase(),
-      priceRaw: price,
+      symbol: String(sym || 'N/A').toUpperCase(),
+      priceRaw: normalizedPrice,
       price: formattedPrice,
-      changePercent: changePct ? changePct.toFixed(2) : '0.00',
-      changeRaw: changePct,
+      changePercent: normalizedChange.toFixed(2),
+      changeRaw: normalizedChange,
       isUp,
-      volume: vol ? `${(vol / 1000000).toFixed(1)}M` : 'N/A',
-      mcap: mcap ? `${(mcap / 1000000000).toFixed(2)}B` : 'N/A',
+      volume: normalizedVolume > 0 ? `${(normalizedVolume / 1000000).toFixed(1)}M` : 'N/A',
+      mcap: normalizedMcap > 0 ? `${(normalizedMcap / 1000000000).toFixed(2)}B` : 'N/A',
       momentumScore,
       momentumLabel,
       retailScore,
@@ -446,7 +609,8 @@ const FinancePage = () => {
 
   const generateAiInsights = (data) => {
     const isBullish = data.isUp;
-    const vol = Math.abs(data.changeRaw);
+    const vol = Math.abs(safeNumber(data.changeRaw, 0));
+    const basePrice = safeNumber(data.priceRaw, 0);
 
     const viralReason =
       vol > 10 ? 'Explosive social mentions matching price action.' : vol > 5 ? 'Steady increase in retail discussions.' : 'Volume is normal relative to historicals.';
@@ -455,9 +619,9 @@ const FinancePage = () => {
     if (vol > 5) whales.push({ action: isBullish ? 'Accumulating' : 'Dumping', time: '2h ago', size: 'High' });
     whales.push({ action: 'Holding', time: '12h ago', size: 'Medium' });
 
-    const entry = (data.priceRaw * (isBullish ? 0.98 : 1.02)).toFixed(data.priceRaw < 1 ? 4 : 2);
-    const stop = (data.priceRaw * (isBullish ? 0.9 : 1.1)).toFixed(data.priceRaw < 1 ? 4 : 2);
-    const target = (data.priceRaw * (isBullish ? 1.15 : 0.85)).toFixed(data.priceRaw < 1 ? 4 : 2);
+    const entry = basePrice > 0 ? (basePrice * (isBullish ? 0.98 : 1.02)).toFixed(basePrice < 1 ? 4 : 2) : 'N/A';
+    const stop = basePrice > 0 ? (basePrice * (isBullish ? 0.9 : 1.1)).toFixed(basePrice < 1 ? 4 : 2) : 'N/A';
+    const target = basePrice > 0 ? (basePrice * (isBullish ? 1.15 : 0.85)).toFixed(basePrice < 1 ? 4 : 2) : 'N/A';
 
     const sentiment = isBullish
       ? 'Euphoric. Retail is chasing green candles. Institutional flows are steady.'
@@ -473,13 +637,25 @@ const FinancePage = () => {
     <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-emerald-500/30 pb-20">
       <div className="bg-slate-900 border-b border-slate-800 h-10 overflow-hidden relative z-50">
         <div id="tv-ticker-tape" className="tradingview-widget-container h-full w-full bg-slate-950"></div>
+        {topWidgetOffline && (
+          <div className="absolute inset-0 flex items-center bg-slate-950/95 text-slate-300 text-xs font-semibold overflow-hidden whitespace-nowrap">
+            <div className="animate-finance-ticker inline-flex items-center">
+              {TOP_TICKER_FALLBACK_ITEMS.concat(TOP_TICKER_FALLBACK_ITEMS).map((item, idx) => (
+                <span key={`${item}-${idx}`} className="mx-6 inline-flex items-center gap-2">
+                  <WifiOff className="w-3 h-3 text-amber-400" />
+                  <span>{item}</span>
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 p-4 sticky top-0 z-40 shadow-xl">
+      <header className="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 p-4 sticky top-0 z-40 shadow-xl" role="banner">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => setView('HOME')}>
             <div className="bg-emerald-500 rounded-lg p-2">
-              <Newspaper className="w-6 h-6 text-slate-900" />
+              <Newspaper className="w-6 h-6 text-slate-900" aria-hidden="true" />
             </div>
             <div>
               <h1 className="text-xl font-bold leading-none hidden sm:block">
@@ -489,12 +665,15 @@ const FinancePage = () => {
             </div>
           </div>
 
-          <div className="flex-1 max-w-xl mx-4 relative group" ref={wrapperRef}>
+          <form className="flex-1 max-w-xl mx-4 relative group" ref={wrapperRef} role="search" onSubmit={(e) => e.preventDefault()}>
+            <label htmlFor="finance-search" className="sr-only">Search stocks or crypto</label>
             <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
               <Search className="w-4 h-4 text-slate-500 group-focus-within:text-emerald-400 transition-colors" />
             </div>
             <input
+              id="finance-search"
               type="text"
+              autoComplete="off"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onFocus={() => {
@@ -509,6 +688,7 @@ const FinancePage = () => {
                 {suggestions.map((item) => (
                   <button
                     key={item.id}
+                    type="button"
                     onClick={() => handleSelectToken(item)}
                     className="w-full text-left px-4 py-3 hover:bg-slate-800 transition-colors flex items-center gap-3 border-b border-slate-800 last:border-0"
                   >
@@ -526,25 +706,31 @@ const FinancePage = () => {
                 ))}
               </div>
             )}
-          </div>
+          </form>
 
           <button
             onClick={() => setIsProMode(!isProMode)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-xs transition-all ${
-              isProMode ? 'bg-amber-500/10 text-amber-400 border border-amber-500/50' : 'bg-slate-800 text-slate-400'
-            }`}
+            className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-xs transition-all ${isProMode ? 'bg-amber-500/10 text-amber-400 border border-amber-500/50' : 'bg-slate-800 text-slate-400'
+              }`}
           >
             {isProMode ? <Gem className="w-3 h-3 fill-current" /> : <Unlock className="w-3 h-3" />}
             {isProMode ? 'PRO' : 'FREE'}
           </button>
         </div>
-      </div>
+      </header>
 
       <main className="max-w-7xl mx-auto p-4 space-y-6 mt-2">
         {view === 'HOME' && (
           <div className="space-y-8 animate-fade-in">
-            <div className="h-[200px] w-full bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden p-2">
+            <div className="h-[200px] w-full bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden p-2 relative">
               <div id="tv-market-overview" className="tradingview-widget-container h-full w-full"></div>
+              {overviewWidgetOffline && (
+                <div className="absolute inset-2 rounded-xl border border-slate-700 bg-slate-900 flex flex-col items-center justify-center gap-2 text-center">
+                  <WifiOff className="w-5 h-5 text-amber-400" />
+                  <p className="text-sm font-semibold text-slate-200">Live market overview is temporarily offline.</p>
+                  <p className="text-xs text-slate-500">Core scanners and search still work below.</p>
+                </div>
+              )}
             </div>
 
             <div>
@@ -648,43 +834,46 @@ const FinancePage = () => {
 
               {!scanning && scannerResults.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in-up">
-                  {scannerResults.map((item) => (
-                    <div
-                      key={item.id}
-                      onClick={() => handleSelectToken(item)}
-                      className="p-4 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 cursor-pointer transition-all group"
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                        <div
-                          className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${
-                            item.price_change_percentage_24h >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
-                          }`}
-                        >
-                          {item.symbol ? item.symbol[0] : '?'}
+                  {scannerResults.map((item) => {
+                    const changeValue = safeNumber(item.price_change_percentage_24h, 0);
+                    const currentPrice = safeNumber(item.current_price, 0);
+                    const hasScore = item.score !== undefined && item.score !== null;
+                    const scanScore = safeNumber(item.score, 0);
+
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => handleSelectToken(item)}
+                        className="p-4 bg-slate-800 hover:bg-slate-700 rounded-xl border border-slate-700 cursor-pointer transition-all group"
+                      >
+                        <div className="flex justify-between items-start mb-2">
+                          <div
+                            className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs ${changeValue >= 0 ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'
+                              }`}
+                          >
+                            {item.symbol ? item.symbol[0] : '?'}
+                          </div>
+                          <div
+                            className={`text-xs font-bold px-2 py-1 rounded bg-slate-900 ${changeValue >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                              }`}
+                          >
+                            {changeValue >= 0 ? '+' : ''}
+                            {changeValue.toFixed(2)}%
+                          </div>
                         </div>
-                        <div
-                          className={`text-xs font-bold px-2 py-1 rounded bg-slate-900 ${
-                            item.price_change_percentage_24h >= 0 ? 'text-emerald-400' : 'text-rose-400'
-                          }`}
-                        >
-                          {item.price_change_percentage_24h >= 0 ? '+' : ''}
-                          {item.price_change_percentage_24h.toFixed(2)}%
+                        <div className="font-bold text-white group-hover:text-emerald-400 truncate">{item.name}</div>
+                        <div className="text-xs text-slate-500 mb-2 flex justify-between">
+                          <span>{item.symbol}</span>
+                          {hasScore && (
+                            <span className="text-purple-400 flex items-center gap-1">
+                              <Rocket className="w-3 h-3" /> Score: {scanScore.toFixed(1)}
+                            </span>
+                          )}
                         </div>
+                        <div className="font-mono text-sm">${currentPrice < 0.01 ? currentPrice.toFixed(6) : currentPrice.toFixed(2)}</div>
                       </div>
-                      <div className="font-bold text-white group-hover:text-emerald-400 truncate">{item.name}</div>
-                      <div className="text-xs text-slate-500 mb-2 flex justify-between">
-                        <span>{item.symbol}</span>
-                        {item.score && (
-                          <span className="text-purple-400 flex items-center gap-1">
-                            <Rocket className="w-3 h-3" /> Score: {item.score.toFixed(1)}
-                          </span>
-                        )}
-                      </div>
-                      <div className="font-mono text-sm">
-                        ${item.current_price < 0.01 ? item.current_price.toFixed(6) : item.current_price.toFixed(2)}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -708,17 +897,17 @@ const FinancePage = () => {
                 </button>
               </div>
 
-              <div className="lg:col-span-4 space-y-6">
+              <aside className="lg:col-span-4 space-y-6" aria-label="Finance Sidebar">
                 <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
                   <h3 className="font-bold text-sm text-slate-400 uppercase mb-4 flex items-center gap-2">
                     <TrendingUp className="w-4 h-4" /> Trending Tickers
                   </h3>
                   <div className="space-y-1">
-                    <TickerRow symbol="NVDA" name="NVIDIA" price="890.10" change="+2.4%" isUp />
-                    <TickerRow symbol="BTC" name="Bitcoin" price="92,450" change="+1.2%" isUp />
-                    <TickerRow symbol="GME" name="GameStop" price="24.50" change="+12.4%" isUp />
-                    <TickerRow symbol="TSLA" name="Tesla" price="175.30" change="-1.5%" isUp={false} />
-                    <TickerRow symbol="SOL" name="Solana" price="145.20" change="+5.1%" isUp />
+                    <TickerRow symbol="NVDA" name="NVIDIA" price="890.10" change="+2.4%" isUp onClick={() => handleSelectToken({ id: 'nvidia', symbol: 'NVDA', name: 'NVIDIA Corp', type: 'STOCK', current_price: 890.1, price_change_percentage_24h: 2.4 })} />
+                    <TickerRow symbol="BTC" name="Bitcoin" price="92,450" change="+1.2%" isUp onClick={() => handleSelectToken({ id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', type: 'CRYPTO' })} />
+                    <TickerRow symbol="GME" name="GameStop" price="24.50" change="+12.4%" isUp onClick={() => handleSelectToken({ id: 'gamestop', symbol: 'GME', name: 'GameStop Corp', type: 'STOCK', current_price: 24.5, price_change_percentage_24h: 12.4 })} />
+                    <TickerRow symbol="TSLA" name="Tesla" price="175.30" change="-1.5%" isUp={false} onClick={() => handleSelectToken({ id: 'tesla', symbol: 'TSLA', name: 'Tesla Inc', type: 'STOCK', current_price: 175.3, price_change_percentage_24h: -1.5 })} />
+                    <TickerRow symbol="SOL" name="Solana" price="145.20" change="+5.1%" isUp onClick={() => handleSelectToken({ id: 'solana', symbol: 'SOL', name: 'Solana', type: 'CRYPTO' })} />
                   </div>
                 </div>
 
@@ -730,7 +919,16 @@ const FinancePage = () => {
                     Unlock Premium
                   </button>
                 </div>
-              </div>
+
+                <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center">
+                  <div className="text-[10px] text-slate-500 uppercase mb-2">Market Snapshot</div>
+                  <div className="rounded-lg border border-slate-700 bg-slate-950 p-4 text-left space-y-2">
+                    <div className="text-xs text-slate-400">US 10Y Yield</div>
+                    <div className="text-lg font-mono text-white">4.12%</div>
+                    <div className="text-xs text-slate-500">Refreshes with next market data cycle.</div>
+                  </div>
+                </div>
+              </aside>
             </div>
           </div>
         )}
@@ -758,9 +956,8 @@ const FinancePage = () => {
                     <div className="text-4xl font-bold tracking-tight">{liveData.symbol}</div>
                   </div>
                   <div
-                    className={`px-4 py-2 rounded-full font-bold text-sm border flex items-center gap-2 ${
-                      liveData.isUp ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'
-                    }`}
+                    className={`px-4 py-2 rounded-full font-bold text-sm border flex items-center gap-2 ${liveData.isUp ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'
+                      }`}
                   >
                     {liveData.isUp ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                     {liveData.isUp ? 'Trending UP' : 'Trending DOWN'}
@@ -794,6 +991,14 @@ const FinancePage = () => {
                     <Loader2 className="w-10 h-10 text-emerald-500 animate-spin" />
                   </div>
                 )}
+                {chartErrorMsg && !loading && (
+                  <div className="absolute inset-0 z-10 bg-slate-900/95 flex items-center justify-center p-6 text-center">
+                    <div className="max-w-sm">
+                      <AlertCircle className="w-8 h-8 text-amber-400 mx-auto mb-3" />
+                      <p className="text-sm font-semibold text-slate-200">{chartErrorMsg}</p>
+                    </div>
+                  </div>
+                )}
                 <div id="tradingview_widget" className="w-full h-full"></div>
               </div>
 
@@ -813,13 +1018,12 @@ const FinancePage = () => {
                       <div className="p-3 flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                              news.type === 'Bullish'
-                                ? 'bg-green-900 text-green-400'
-                                : news.type === 'Bearish'
-                                  ? 'bg-red-900 text-red-400'
-                                  : 'bg-slate-800 text-slate-400'
-                            }`}
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded ${news.type === 'Bullish'
+                              ? 'bg-green-900 text-green-400'
+                              : news.type === 'Bearish'
+                                ? 'bg-red-900 text-red-400'
+                                : 'bg-slate-800 text-slate-400'
+                              }`}
                           >
                             {news.type}
                           </span>
@@ -918,15 +1122,15 @@ const FinancePage = () => {
                         <div className="grid grid-cols-3 gap-3 text-center">
                           <div className="p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
                             <div className="text-green-400 text-xs font-bold uppercase mb-1">Buy Zone</div>
-                            <div className="text-white font-mono text-sm">${aiInsights.entry}</div>
+                            <div className="text-white font-mono text-sm">{aiInsights.entry === 'N/A' ? 'N/A' : `$${aiInsights.entry}`}</div>
                           </div>
                           <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg">
                             <div className="text-red-400 text-xs font-bold uppercase mb-1">Stop Loss</div>
-                            <div className="text-white font-mono text-sm">${aiInsights.stop}</div>
+                            <div className="text-white font-mono text-sm">{aiInsights.stop === 'N/A' ? 'N/A' : `$${aiInsights.stop}`}</div>
                           </div>
                           <div className="p-3 bg-purple-500/10 border border-purple-500/30 rounded-lg">
                             <div className="text-purple-400 text-xs font-bold uppercase mb-1">Target</div>
-                            <div className="text-white font-mono text-sm">${aiInsights.target}</div>
+                            <div className="text-white font-mono text-sm">{aiInsights.target === 'N/A' ? 'N/A' : `$${aiInsights.target}`}</div>
                           </div>
                         </div>
                         <p className="text-xs text-slate-500 text-center mt-2">Levels calculated based on daily volatility.</p>
@@ -965,9 +1169,8 @@ const FinancePage = () => {
                         {liveData.risks.map((risk, i) => (
                           <div
                             key={i}
-                            className={`p-3 rounded-lg border flex items-center gap-3 ${
-                              risk.type === 'Safe' ? 'bg-green-500/10 border-green-500/30 text-green-300' : 'bg-red-500/10 border-red-500/30 text-red-300'
-                            }`}
+                            className={`p-3 rounded-lg border flex items-center gap-3 ${risk.type === 'Safe' ? 'bg-green-500/10 border-green-500/30 text-green-300' : 'bg-red-500/10 border-red-500/30 text-red-300'
+                              }`}
                           >
                             {risk.type === 'Safe' ? <CheckCircle2 className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
                             <div>
@@ -1031,6 +1234,17 @@ const FinancePage = () => {
       </main>
 
       <style>{`
+        @keyframes finance-ticker {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(-50%);
+          }
+        }
+        .animate-finance-ticker {
+          animation: finance-ticker 26s linear infinite;
+        }
         .no-scrollbar::-webkit-scrollbar {
           display: none;
         }
@@ -1053,9 +1267,8 @@ const scannerColorClasses = {
 const ScannerButton = ({ icon, title, active, onClick, color }) => (
   <button
     onClick={onClick}
-    className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${
-      active ? scannerColorClasses[color] : 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-300'
-    }`}
+    className={`p-4 rounded-xl border flex flex-col items-center gap-2 transition-all ${active ? scannerColorClasses[color] : 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-300'
+      }`}
   >
     {icon}
     <span className="text-xs font-bold">{title}</span>
@@ -1065,9 +1278,8 @@ const ScannerButton = ({ icon, title, active, onClick, color }) => (
 const TabButton = ({ icon, label, active, onClick }) => (
   <button
     onClick={onClick}
-    className={`flex flex-col items-center gap-1 px-4 py-3 text-[10px] font-bold transition-all border-b-2 min-w-[70px] ${
-      active ? 'border-emerald-500 text-white bg-slate-800' : 'border-transparent text-slate-500 hover:text-slate-300'
-    }`}
+    className={`flex flex-col items-center gap-1 px-4 py-3 text-[10px] font-bold transition-all border-b-2 min-w-[70px] ${active ? 'border-emerald-500 text-white bg-slate-800' : 'border-transparent text-slate-500 hover:text-slate-300'
+      }`}
   >
     {icon}
     {label}
@@ -1121,8 +1333,12 @@ const NewsCardStandard = ({ news }) => (
   </div>
 );
 
-const TickerRow = ({ symbol, name, price, change, isUp }) => (
-  <div className="flex items-center justify-between p-3 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors group">
+const TickerRow = ({ symbol, name, price, change, isUp, onClick }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className="w-full text-left flex items-center justify-between p-3 hover:bg-slate-800 rounded-lg cursor-pointer transition-colors group"
+  >
     <div className="flex items-center gap-3">
       <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-400 group-hover:text-white group-hover:bg-slate-700 transition-colors">
         {symbol[0]}
@@ -1136,7 +1352,7 @@ const TickerRow = ({ symbol, name, price, change, isUp }) => (
       <div className="font-mono text-sm text-white">${price}</div>
       <div className={`text-xs font-bold ${isUp ? 'text-emerald-400' : 'text-red-400'}`}>{change}</div>
     </div>
-  </div>
+  </button>
 );
 
 export default FinancePage;

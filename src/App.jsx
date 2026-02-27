@@ -290,9 +290,8 @@ const BeefMeter = ({ level }) => {
     <div className="relative w-32 h-16 overflow-hidden mx-auto mt-4">
       <div className="w-32 h-32 rounded-full border-8 border-slate-200 border-b-0 border-l-slate-300 border-r-slate-300 border-t-slate-300 bg-slate-100 absolute top-0 left-0 box-border"></div>
       <div
-        className={`absolute bottom-0 left-1/2 w-1 h-14 bg-black origin-bottom transition-transform duration-700 ease-out ${
-          rotation[level] || 'rotate-0'
-        } -ml-0.5 z-10 rounded-full`}
+        className={`absolute bottom-0 left-1/2 w-1 h-14 bg-black origin-bottom transition-transform duration-700 ease-out ${rotation[level] || 'rotate-0'
+          } -ml-0.5 z-10 rounded-full`}
       ></div>
       <div className="absolute bottom-0 left-1/2 w-4 h-4 bg-slate-800 rounded-full -ml-2 z-20"></div>
     </div>
@@ -321,7 +320,7 @@ const SatiricalReader = ({ article, onBack }) => {
     setShowFactCheck(!showFactCheck);
   };
 
-  if (!satireData) return <div className="p-10 text-center"><RefreshCw className="animate-spin mx-auto"/> Generating Cynicism...</div>;
+  if (!satireData) return <div className="p-10 text-center"><RefreshCw className="animate-spin mx-auto" /> Generating Cynicism...</div>;
 
   return (
     <div className="animate-in fade-in zoom-in-95 duration-300">
@@ -331,13 +330,13 @@ const SatiricalReader = ({ article, onBack }) => {
             <span className="inline-block bg-red-600 text-white text-xs font-bold px-2 py-1 rounded mb-3 uppercase tracking-wider">Satire Filter: ACTIVE</span>
             <h1 className="text-2xl md:text-3xl font-black font-serif italic leading-tight mb-4">{satireData.headline}</h1>
             <div className="flex flex-wrap items-center gap-4 text-slate-400 text-sm font-mono">
-              <span className="flex items-center gap-1"><Glasses className="w-4 h-4"/> Analyst: Dr. Sarcasm</span>
+              <span className="flex items-center gap-1"><Glasses className="w-4 h-4" /> Analyst: Dr. Sarcasm</span>
               <span>•</span>
-              <span className="flex items-center gap-1"><ShieldAlert className="w-4 h-4"/> Clearance: G-14 Classified</span>
+              <span className="flex items-center gap-1"><ShieldAlert className="w-4 h-4" /> Clearance: G-14 Classified</span>
             </div>
             <div className="flex gap-2 mt-6">
-               <button onClick={handleCopyRant} className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded flex items-center gap-2 transition-colors">{copyStatus === 'Copied!' ? <CheckCircle className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}{copyStatus.toUpperCase()}</button>
-               <button onClick={toggleFactCheck} className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded flex items-center gap-2 transition-colors"><CheckCircle className="w-4 h-4" />INSTANT FACT CHECK</button>
+              <button onClick={handleCopyRant} className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded flex items-center gap-2 transition-colors">{copyStatus === 'Copied!' ? <CheckCircle className="w-4 h-4" /> : <Share2 className="w-4 h-4" />}{copyStatus.toUpperCase()}</button>
+              <button onClick={toggleFactCheck} className="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded flex items-center gap-2 transition-colors"><CheckCircle className="w-4 h-4" />INSTANT FACT CHECK</button>
             </div>
             {showFactCheck && (
               <div className="mt-4 bg-yellow-100 text-yellow-900 p-3 rounded border-l-4 border-yellow-600 text-xs font-mono animate-in fade-in slide-in-from-top-2">
@@ -363,7 +362,7 @@ const SatiricalReader = ({ article, onBack }) => {
                   </div>
                 </div>
                 <p className="text-sm text-slate-600 italic mb-3">"{article.description ? article.description.replace(/<[^>]*>?/gm, '') : article.title}"</p>
-                <a href={article.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline">Read Full Source at {getHostname(article.link)} <ExternalLink className="w-3 h-3"/></a>
+                <a href={article.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline">Read Full Source at {getHostname(article.link)} <ExternalLink className="w-3 h-3" /></a>
               </div>
             </div>
             <div className="w-full md:w-64 space-y-6">
@@ -390,9 +389,9 @@ const VibeMarket = () => (
       <span>Vibe Market</span><span className="text-[10px] bg-green-100 text-green-800 px-1 rounded">OPEN</span>
     </h3>
     <div className="space-y-3">
-      <div className="flex justify-between items-center"><div className="text-xs font-bold flex gap-2"><span className="bg-blue-100 p-1 rounded">🙏</span> Prayers</div><div className="text-right text-sm font-black text-green-600">+4.2% <TrendingUp className="inline w-3 h-3"/></div></div>
-      <div className="flex justify-between items-center"><div className="text-xs font-bold flex gap-2"><span className="bg-yellow-100 p-1 rounded">🤔</span> Thoughts</div><div className="text-right text-sm font-black text-red-500">-12.5% <TrendingDown className="inline w-3 h-3"/></div></div>
-      <div className="flex justify-between items-center"><div className="text-xs font-bold flex gap-2"><span className="bg-red-100 p-1 rounded">🔥</span> Chaos</div><div className="text-right text-sm font-black text-green-600">+850% <TrendingUp className="inline w-3 h-3"/></div></div>
+      <div className="flex justify-between items-center"><div className="text-xs font-bold flex gap-2"><span className="bg-blue-100 p-1 rounded">🙏</span> Prayers</div><div className="text-right text-sm font-black text-green-600">+4.2% <TrendingUp className="inline w-3 h-3" /></div></div>
+      <div className="flex justify-between items-center"><div className="text-xs font-bold flex gap-2"><span className="bg-yellow-100 p-1 rounded">🤔</span> Thoughts</div><div className="text-right text-sm font-black text-red-500">-12.5% <TrendingDown className="inline w-3 h-3" /></div></div>
+      <div className="flex justify-between items-center"><div className="text-xs font-bold flex gap-2"><span className="bg-red-100 p-1 rounded">🔥</span> Chaos</div><div className="text-right text-sm font-black text-green-600">+850% <TrendingUp className="inline w-3 h-3" /></div></div>
     </div>
   </div>
 );
@@ -404,7 +403,7 @@ const SidebarNav = ({ setActiveTab }) => (
       {['home', 'tracker', 'military', 'conspiracy', 'finance', 'horoscopes', 'shopping', 'satire'].map((tab) => (
         <li key={tab} onClick={() => setActiveTab(tab)} className="px-3 py-2 hover:bg-blue-50 hover:text-blue-600 cursor-pointer flex justify-between group capitalize">
           {tab === 'tracker' ? 'WTFWN Tracker' : tab}
-          <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity"/>
+          <ChevronRight className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
         </li>
       ))}
     </ul>
@@ -425,42 +424,43 @@ const RadarIcon = () => (
   <div className="relative w-4 h-4 rounded-full border border-green-500 flex items-center justify-center overflow-hidden"><div className="absolute w-full h-[1px] bg-green-500 animate-[spin_2s_linear_infinite]"></div></div>
 );
 
-const PortalHeader = ({ activeTab, setActiveTab, tickerItems, onBack, isReading }) => (
+const PortalHeader = ({ activeTab, onTabChange, tickerItems, isReading }) => (
   <header className="bg-white text-slate-900 border-b border-slate-300 sticky top-0 z-50 shadow-sm font-sans">
     <div className="bg-slate-900 text-white text-[10px] py-1 px-4 flex justify-between items-center">
-      <div className="flex gap-4">
-        <span onClick={() => !isReading && setActiveTab('home')} className="hover:underline cursor-pointer opacity-80">Make Homepage</span>
-        <span onClick={() => setActiveTab('about')} className="hover:underline cursor-pointer opacity-80">About</span>
-      </div>
-      <div className="flex gap-4">
-        <span onClick={() => setActiveTab('terms')} className="hover:underline cursor-pointer opacity-80">Terms</span>
-        <span onClick={() => setActiveTab('privacy')} className="hover:underline cursor-pointer opacity-80">Privacy</span>
-      </div>
+      <nav className="flex gap-4" aria-label="Quick links">
+        <span onClick={() => onTabChange('home')} className="hover:underline cursor-pointer opacity-80">Make Homepage</span>
+        <span onClick={() => onTabChange('about')} className="hover:underline cursor-pointer opacity-80">About</span>
+      </nav>
+      <nav className="flex gap-4" aria-label="Legal links">
+        <span onClick={() => onTabChange('terms')} className="hover:underline cursor-pointer opacity-80">Terms</span>
+        <span onClick={() => onTabChange('privacy')} className="hover:underline cursor-pointer opacity-80">Privacy</span>
+      </nav>
     </div>
     <div className="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
-      <div className="flex items-center gap-2 cursor-pointer" onClick={() => !isReading && setActiveTab('home')}>
-        <div className="bg-red-600 p-2 rounded-lg transform -rotate-6 shadow-md"><Globe className="w-8 h-8 text-white" /></div>
+      <div className="flex items-center gap-2 cursor-pointer" onClick={() => onTabChange('home')}>
+        <div className="bg-red-600 p-2 rounded-lg transform -rotate-6 shadow-md"><Globe className="w-8 h-8 text-white" aria-hidden="true" /></div>
         <div className="leading-none">
           <h1 className="text-3xl font-black tracking-tighter italic text-slate-900 font-serif">Diss-patch<span className="text-red-600">!</span></h1>
           <p className="text-[10px] text-slate-500 font-bold tracking-widest uppercase">The Front Page of the Simulation</p>
         </div>
       </div>
       {!isReading && (
-        <div className="w-full md:w-[500px] flex">
-          <input type="text" placeholder="Search for truth, lies, or cat videos..." className="w-full border-2 border-slate-300 rounded-l-md px-4 py-2 text-sm focus:outline-none focus:border-blue-500" />
-          <button className="bg-blue-600 text-white px-6 rounded-r-md hover:bg-blue-700 font-bold"><Search className="w-5 h-5" /></button>
-        </div>
+        <form className="w-full md:w-[500px] flex" role="search" onSubmit={(e) => e.preventDefault()}>
+          <label htmlFor="search-truth" className="sr-only">Search for truth</label>
+          <input id="search-truth" type="text" placeholder="Search for truth, lies, or cat videos..." className="w-full border-2 border-slate-300 rounded-l-md px-4 py-2 text-sm focus:outline-none focus:border-blue-500" />
+          <button type="submit" className="bg-blue-600 text-white px-6 rounded-r-md hover:bg-blue-700 font-bold" aria-label="Search"><Search className="w-5 h-5" /></button>
+        </form>
       )}
       <div className="hidden md:flex items-center gap-3 text-slate-600">
         <div className="text-right"><div className="font-bold text-lg leading-none">72°F</div><div className="text-[10px] uppercase font-bold text-red-500">Judgemental</div></div>
         <CloudLightning className="w-8 h-8 text-slate-400" />
       </div>
     </div>
-    <div className="bg-white border-t border-slate-100 overflow-x-auto">
+      <div className="bg-white border-t border-slate-100 overflow-x-auto">
       <div className="container mx-auto px-4">
         <nav className="flex gap-6 text-sm font-bold text-slate-600 whitespace-nowrap py-3">
           {['home', 'tracker', 'military', 'conspiracy', 'satire', 'horoscopes', 'finance', 'shopping'].map((tab) => (
-            <button key={tab} onClick={() => setActiveTab(tab)} className={`hover:text-blue-600 uppercase tracking-tight flex items-center gap-1 transition-colors ${activeTab === tab ? 'text-blue-600 border-b-2 border-blue-600 pb-1 -mb-1.5' : ''}`}>
+            <button key={tab} onClick={() => onTabChange(tab)} className={`hover:text-blue-600 uppercase tracking-tight flex items-center gap-1 transition-colors ${activeTab === tab ? 'text-blue-600 border-b-2 border-blue-600 pb-1 -mb-1.5' : ''}`}>
               {tab === 'tracker' ? 'WTFWN' : tab === 'conspiracy' ? 'Truth' : tab}
             </button>
           ))}
@@ -528,7 +528,7 @@ const TermsPage = () => (
 );
 
 const Footer = ({ setActiveTab }) => (
-  <footer className="bg-slate-900 text-white py-8 mt-12 border-t border-slate-800">
+  <footer className="bg-slate-900 text-white py-8 mt-12 border-t border-slate-800" role="contentinfo">
     <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 text-sm">
       <div>
         <h4 className="font-black text-lg mb-4 italic">Diss-patch<span className="text-red-600">!</span></h4>
@@ -536,32 +536,47 @@ const Footer = ({ setActiveTab }) => (
       </div>
       <div>
         <h5 className="font-bold uppercase text-slate-500 mb-3">Sections</h5>
-        <ul className="space-y-2">
-          <li onClick={() => setActiveTab('home')} className="hover:text-blue-400 cursor-pointer">Home</li>
-          <li onClick={() => setActiveTab('home')} className="hover:text-blue-400 cursor-pointer">Politics</li>
-          <li onClick={() => setActiveTab('military')} className="hover:text-blue-400 cursor-pointer">Defense</li>
-          <li onClick={() => setActiveTab('conspiracy')} className="hover:text-blue-400 cursor-pointer">Weird News</li>
-        </ul>
+        <nav aria-label="Footer sections">
+          <ul className="space-y-2">
+            <li onClick={() => setActiveTab('home')} className="hover:text-blue-400 cursor-pointer">Home</li>
+            <li onClick={() => setActiveTab('home')} className="hover:text-blue-400 cursor-pointer">Politics</li>
+            <li onClick={() => setActiveTab('military')} className="hover:text-blue-400 cursor-pointer">Defense</li>
+            <li onClick={() => setActiveTab('conspiracy')} className="hover:text-blue-400 cursor-pointer">Weird News</li>
+          </ul>
+        </nav>
       </div>
       <div>
         <h5 className="font-bold uppercase text-slate-500 mb-3">Company</h5>
-        <ul className="space-y-2">
-          <li onClick={() => setActiveTab('about')} className="hover:text-blue-400 cursor-pointer">About Us</li>
-          <li onClick={() => setActiveTab('about')} className="hover:text-blue-400 cursor-pointer">Contact</li>
-          <li onClick={() => setActiveTab('about')} className="hover:text-blue-400 cursor-pointer">Careers (Lol)</li>
-        </ul>
+        <nav aria-label="Footer company info">
+          <ul className="space-y-2">
+            <li onClick={() => setActiveTab('about')} className="hover:text-blue-400 cursor-pointer">About Us</li>
+            <li onClick={() => setActiveTab('about')} className="hover:text-blue-400 cursor-pointer">Contact</li>
+            <li onClick={() => setActiveTab('about')} className="hover:text-blue-400 cursor-pointer">Careers (Lol)</li>
+          </ul>
+        </nav>
       </div>
       <div>
         <h5 className="font-bold uppercase text-slate-500 mb-3">Legal</h5>
-        <ul className="space-y-2">
-          <li onClick={() => setActiveTab('privacy')} className="hover:text-blue-400 cursor-pointer">Privacy Policy</li>
-          <li onClick={() => setActiveTab('terms')} className="hover:text-blue-400 cursor-pointer">Terms of Service</li>
-          <li onClick={() => setActiveTab('privacy')} className="hover:text-blue-400 cursor-pointer">Cookie Policy</li>
-        </ul>
+        <nav aria-label="Footer legal links">
+          <ul className="space-y-2">
+            <li onClick={() => setActiveTab('privacy')} className="hover:text-blue-400 cursor-pointer">Privacy Policy</li>
+            <li onClick={() => setActiveTab('terms')} className="hover:text-blue-400 cursor-pointer">Terms of Service</li>
+            <li onClick={() => setActiveTab('privacy')} className="hover:text-blue-400 cursor-pointer">Cookie Policy</li>
+          </ul>
+        </nav>
       </div>
     </div>
     <div className="container mx-auto px-4 mt-8 pt-8 border-t border-slate-800 text-center text-xs text-slate-500">
-      &copy; 2024 The Daily Diss-patch. All rights reserved. Not affiliated with reality.
+      &copy; 2026 The Daily Diss-patch. All rights reserved. Not affiliated with reality.
+    </div>
+    {/* AdSense Horizontal */}
+    <div className="container mx-auto px-4 mt-4 text-center">
+      <ins className="adsbygoogle"
+        style={{ display: 'block' }}
+        data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+        data-ad-slot="YYYYYYYYYY"
+        data-ad-format="horizontal"
+        data-full-width-responsive="true"></ins>
     </div>
   </footer>
 );
@@ -593,14 +608,19 @@ const YahooStyleHome = ({ onArticleSelect, setActiveTab }) => {
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl animate-in fade-in slide-in-from-bottom-2 duration-700">
       <div className="flex flex-col lg:flex-row gap-6">
-        <div className="hidden lg:block w-48 flex-shrink-0 space-y-6">
+        <aside className="hidden lg:block w-48 flex-shrink-0 space-y-6" aria-label="Sidebar">
           <SidebarNav setActiveTab={setActiveTab} />
           <div className="bg-slate-100 border border-slate-300 p-4 text-center rounded">
-             <div className="text-[10px] text-slate-400 uppercase mb-2">Ad</div>
-             <h4 className="font-black text-slate-800 mb-2">Bunker Sale!</h4>
-             <button className="bg-slate-900 text-white text-xs px-4 py-2 rounded uppercase font-bold">Shop Now</button>
+            <div className="text-[10px] text-slate-400 uppercase mb-2">Advertisement</div>
+            {/* Google AdSense Vertical */}
+            <ins className="adsbygoogle"
+              style={{ display: 'block' }}
+              data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+              data-ad-slot="XXXXXXXXXX"
+              data-ad-format="auto"
+              data-full-width-responsive="true"></ins>
           </div>
-        </div>
+        </aside>
         <div className="flex-1 min-w-0">
           {news.politics[0] && (
             <div onClick={() => onArticleSelect(news.politics[0])} className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden mb-6 cursor-pointer group h-80 relative">
@@ -614,28 +634,28 @@ const YahooStyleHome = ({ onArticleSelect, setActiveTab }) => {
             </div>
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-                <h3 className="font-bold text-lg mb-3 flex items-center gap-2 pb-2 border-b border-slate-100"><Globe className="w-5 h-5 text-blue-600" /> Political Circus</h3>
-                <div className="space-y-4">
-                  {news.politics.slice(1, 5).map((item, i) => (
-                    <div key={i} onClick={() => onArticleSelect(item)} className="cursor-pointer group flex gap-3">
-                      <div className="w-20 h-16 flex-shrink-0 rounded overflow-hidden bg-slate-100"><NewsImage item={item} category="politics" /></div>
-                      <div><h4 className="font-bold text-sm text-slate-800 group-hover:text-blue-600 leading-snug mb-1 line-clamp-2">{item.title}</h4><p className="text-xs text-slate-400">2 hours ago</p></div>
-                    </div>
-                  ))}
-                </div>
-             </div>
-             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-                <h3 className="font-bold text-lg mb-3 flex items-center gap-2 pb-2 border-b border-slate-100"><ShieldAlert className="w-5 h-5 text-green-600" /> Global Conflict</h3>
-                <div className="space-y-4">
-                  {news.defense.map((item, i) => (
-                    <div key={i} onClick={() => onArticleSelect(item)} className="cursor-pointer group flex gap-3">
-                      <div className="w-20 h-16 flex-shrink-0 rounded overflow-hidden bg-slate-100"><NewsImage item={item} category="defense" /></div>
-                      <div><h4 className="font-bold text-sm text-slate-800 group-hover:text-green-600 leading-snug mb-1 line-clamp-2">{item.title}</h4><p className="text-xs text-slate-400">Military Ops</p></div>
-                    </div>
-                  ))}
-                </div>
-             </div>
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+              <h3 className="font-bold text-lg mb-3 flex items-center gap-2 pb-2 border-b border-slate-100"><Globe className="w-5 h-5 text-blue-600" /> Political Circus</h3>
+              <div className="space-y-4">
+                {news.politics.slice(1, 5).map((item, i) => (
+                  <div key={i} onClick={() => onArticleSelect(item)} className="cursor-pointer group flex gap-3">
+                    <div className="w-20 h-16 flex-shrink-0 rounded overflow-hidden bg-slate-100"><NewsImage item={item} category="politics" /></div>
+                    <div><h4 className="font-bold text-sm text-slate-800 group-hover:text-blue-600 leading-snug mb-1 line-clamp-2">{item.title}</h4><p className="text-xs text-slate-400">2 hours ago</p></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
+              <h3 className="font-bold text-lg mb-3 flex items-center gap-2 pb-2 border-b border-slate-100"><ShieldAlert className="w-5 h-5 text-green-600" /> Global Conflict</h3>
+              <div className="space-y-4">
+                {news.defense.map((item, i) => (
+                  <div key={i} onClick={() => onArticleSelect(item)} className="cursor-pointer group flex gap-3">
+                    <div className="w-20 h-16 flex-shrink-0 rounded overflow-hidden bg-slate-100"><NewsImage item={item} category="defense" /></div>
+                    <div><h4 className="font-bold text-sm text-slate-800 group-hover:text-green-600 leading-snug mb-1 line-clamp-2">{item.title}</h4><p className="text-xs text-slate-400">Military Ops</p></div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
         <div className="w-full lg:w-80 flex-shrink-0 space-y-6">
@@ -700,14 +720,14 @@ const WTFWNPage = ({ setActiveTab }) => {
             <div className="space-y-4">
               {rants.map((rant, i) => (
                 <div key={i} className="border-b border-slate-100 last:border-0 pb-3">
-                   <div className="flex items-start gap-3">
-                      <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-xl">👱‍♂️</div>
-                      <div>
-                        <div className="flex items-center gap-2 mb-1"><span className="font-bold text-sm">The Don</span><span className="text-blue-500"><CheckCircle className="w-3 h-3" /></span><span className="text-xs text-slate-400">{rant.date}</span></div>
-                        <p className="text-sm text-slate-800 font-medium mb-2">{rant.text}</p>
-                        <div className="flex gap-4 text-xs text-slate-400 font-bold"><span className="flex items-center gap-1"><Repeat className="w-3 h-3"/> {rant.reposts}</span><span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3"/> {rant.likes}</span></div>
-                      </div>
-                   </div>
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-xl">👱‍♂️</div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1"><span className="font-bold text-sm">The Don</span><span className="text-blue-500"><CheckCircle className="w-3 h-3" /></span><span className="text-xs text-slate-400">{rant.date}</span></div>
+                      <p className="text-sm text-slate-800 font-medium mb-2">{rant.text}</p>
+                      <div className="flex gap-4 text-xs text-slate-400 font-bold"><span className="flex items-center gap-1"><Repeat className="w-3 h-3" /> {rant.reposts}</span><span className="flex items-center gap-1"><ThumbsUp className="w-3 h-3" /> {rant.likes}</span></div>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -715,12 +735,12 @@ const WTFWNPage = ({ setActiveTab }) => {
         </div>
         <div className="w-full lg:w-80 flex-shrink-0 space-y-6">
           <div className="bg-slate-900 text-white p-5 rounded-xl shadow border-2 border-yellow-500">
-             <h3 className="font-black text-yellow-500 uppercase italic flex items-center gap-2 mb-4 border-b border-slate-700 pb-2"><DollarSign className="w-5 h-5" /> Vegas Odds</h3>
-             <div className="space-y-3 font-mono text-sm">
-               {VEGAS_ODDS.map((item, i) => (
-                 <div key={i} className="flex justify-between items-center"><span className="text-yellow-400">{i + 1}. {item.name}</span><span className="text-slate-400">{item.odds}</span></div>
-               ))}
-             </div>
+            <h3 className="font-black text-yellow-500 uppercase italic flex items-center gap-2 mb-4 border-b border-slate-700 pb-2"><DollarSign className="w-5 h-5" /> Vegas Odds</h3>
+            <div className="space-y-3 font-mono text-sm">
+              {VEGAS_ODDS.map((item, i) => (
+                <div key={i} className="flex justify-between items-center"><span className="text-yellow-400">{i + 1}. {item.name}</span><span className="text-slate-400">{item.odds}</span></div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -764,23 +784,23 @@ const MilitaryDashboard = ({ onArticleSelect, setActiveTab, feed }) => {
           <MilitaryMap />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-slate-900 rounded-xl p-4 border border-slate-700 text-slate-300">
-               <h3 className="font-bold text-sm text-green-400 mb-4 flex items-center gap-2 border-b border-slate-700 pb-2"><Radio className="w-4 h-4" /> CONFIRMED INTEL</h3>
-               <div className="space-y-4">
-                 {news.map((item, i) => (
-                   <div key={i} onClick={() => onArticleSelect(item)} className="p-3 bg-slate-800 rounded border border-slate-700 hover:border-green-500 cursor-pointer transition-all group flex gap-3">
-                     <div className="w-16 h-12 flex-shrink-0 bg-slate-700 rounded overflow-hidden"><NewsImage item={item} category="defense" /></div>
-                     <div><h4 className="font-bold text-sm text-white group-hover:text-green-400 leading-tight">{item.title}</h4><p className="text-xs text-green-500 font-mono mt-1">CLASS: UNCLASSIFIED</p></div>
-                   </div>
-                 ))}
-               </div>
+              <h3 className="font-bold text-sm text-green-400 mb-4 flex items-center gap-2 border-b border-slate-700 pb-2"><Radio className="w-4 h-4" /> CONFIRMED INTEL</h3>
+              <div className="space-y-4">
+                {news.map((item, i) => (
+                  <div key={i} onClick={() => onArticleSelect(item)} className="p-3 bg-slate-800 rounded border border-slate-700 hover:border-green-500 cursor-pointer transition-all group flex gap-3">
+                    <div className="w-16 h-12 flex-shrink-0 bg-slate-700 rounded overflow-hidden"><NewsImage item={item} category="defense" /></div>
+                    <div><h4 className="font-bold text-sm text-white group-hover:text-green-400 leading-tight">{item.title}</h4><p className="text-xs text-green-500 font-mono mt-1">CLASS: UNCLASSIFIED</p></div>
+                  </div>
+                ))}
+              </div>
             </div>
             <div className="bg-white rounded-xl p-4 border border-slate-200">
-               <h3 className="font-bold text-sm text-red-600 mb-4 flex items-center gap-2 border-b border-slate-200 pb-2"><Bomb className="w-4 h-4" /> UNCONFIRMED RUMORS (Satire)</h3>
-               <div className="space-y-3">
-                  {feed.filter((f) => f.category === 'Military').map((news) => (
-                    <SatireNewsCard key={news.id} news={news} onClick={() => onArticleSelect(news)} />
-                  ))}
-               </div>
+              <h3 className="font-bold text-sm text-red-600 mb-4 flex items-center gap-2 border-b border-slate-200 pb-2"><Bomb className="w-4 h-4" /> UNCONFIRMED RUMORS (Satire)</h3>
+              <div className="space-y-3">
+                {feed.filter((f) => f.category === 'Military').map((news) => (
+                  <SatireNewsCard key={news.id} news={news} onClick={() => onArticleSelect(news)} />
+                ))}
+              </div>
             </div>
           </div>
         </div>
@@ -887,18 +907,18 @@ const ConspiracyPage = ({ onArticleSelect, setActiveTab }) => {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     const draw = () => {
-       ctx.clearRect(0, 0, canvas.width, canvas.height);
-       ctx.strokeStyle = '#ef4444';
-       ctx.lineWidth = 2;
-       ctx.beginPath();
-       for (let i = 0; i < 5; i += 1) {
-          const x = Math.random() * canvas.width;
-          const y = Math.random() * canvas.height;
-          if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-          ctx.fillStyle = '#000';
-          ctx.fillRect(x - 2, y - 2, 4, 4);
-       }
-       ctx.stroke();
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < 5; i += 1) {
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        ctx.fillStyle = '#000';
+        ctx.fillRect(x - 2, y - 2, 4, 4);
+      }
+      ctx.stroke();
     };
     const interval = setInterval(draw, 2000);
     draw();
@@ -923,24 +943,24 @@ const ConspiracyPage = ({ onArticleSelect, setActiveTab }) => {
                 </div>
               </div>
               <div className="bg-slate-100 rounded-xl p-4 border border-slate-300">
-                 <h3 className="font-bold text-sm text-slate-500 uppercase mb-3 flex items-center gap-2"><ShoppingBag className="w-4 h-4" /> The Patriot Shop</h3>
-                 <div className="grid grid-cols-2 gap-2">
-                   {CONSPIRACY_PRODUCTS.map((prod, i) => (
-                     <div key={i} className="bg-white p-2 rounded border border-slate-200 text-center"><div className="text-xs font-black text-slate-800 mb-1">{prod.name}</div><div className="text-[10px] text-slate-500 leading-tight mb-2">{prod.desc}</div><div className="text-sm font-bold text-green-600">{prod.price}</div></div>
-                   ))}
-                 </div>
+                <h3 className="font-bold text-sm text-slate-500 uppercase mb-3 flex items-center gap-2"><ShoppingBag className="w-4 h-4" /> The Patriot Shop</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {CONSPIRACY_PRODUCTS.map((prod, i) => (
+                    <div key={i} className="bg-white p-2 rounded border border-slate-200 text-center"><div className="text-xs font-black text-slate-800 mb-1">{prod.name}</div><div className="text-[10px] text-slate-500 leading-tight mb-2">{prod.desc}</div><div className="text-sm font-bold text-green-600">{prod.price}</div></div>
+                  ))}
+                </div>
               </div>
             </div>
             <div className="space-y-6">
-               <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden relative"><div className="absolute top-2 left-2 text-xs font-bold text-red-600 bg-white/80 px-2 py-1 rounded">EVIDENCE BOARD (LIVE)</div><canvas ref={canvasRef} width={400} height={200} className="w-full bg-amber-100"></canvas></div>
-               <div className="bg-slate-900 rounded-xl p-4 text-slate-300">
-                 <h3 className="font-bold text-sm text-purple-400 mb-4 flex items-center gap-2 border-b border-slate-700 pb-2"><FileText className="w-4 h-4" /> CONFIRMED "WEIRD" EVENTS</h3>
-                 <div className="space-y-3">
-                   {weirdNews.map((item, i) => (
-                     <div key={i} onClick={() => onArticleSelect(item)} className="flex items-start gap-2 group cursor-pointer hover:bg-slate-800 p-2 rounded transition-colors"><Triangle className="w-3 h-3 text-purple-500 mt-1 flex-shrink-0 group-hover:animate-spin" /><div><h4 className="text-xs font-bold text-white group-hover:text-purple-300">{item.title}</h4><span className="text-[10px] opacity-50">{item.pubDate?.split(' ')[0]}</span></div></div>
-                   ))}
-                 </div>
-               </div>
+              <div className="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden relative"><div className="absolute top-2 left-2 text-xs font-bold text-red-600 bg-white/80 px-2 py-1 rounded">EVIDENCE BOARD (LIVE)</div><canvas ref={canvasRef} width={400} height={200} className="w-full bg-amber-100"></canvas></div>
+              <div className="bg-slate-900 rounded-xl p-4 text-slate-300">
+                <h3 className="font-bold text-sm text-purple-400 mb-4 flex items-center gap-2 border-b border-slate-700 pb-2"><FileText className="w-4 h-4" /> CONFIRMED "WEIRD" EVENTS</h3>
+                <div className="space-y-3">
+                  {weirdNews.map((item, i) => (
+                    <div key={i} onClick={() => onArticleSelect(item)} className="flex items-start gap-2 group cursor-pointer hover:bg-slate-800 p-2 rounded transition-colors"><Triangle className="w-3 h-3 text-purple-500 mt-1 flex-shrink-0 group-hover:animate-spin" /><div><h4 className="text-xs font-bold text-white group-hover:text-purple-300">{item.title}</h4><span className="text-[10px] opacity-50">{item.pubDate?.split(' ')[0]}</span></div></div>
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -1003,6 +1023,14 @@ const App = () => {
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [tickerItems, setTickerItems] = useState([]);
 
+  const handleTabChange = (tab) => {
+    setSelectedArticle(null);
+    setActiveTab(tab);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+  };
+
   useEffect(() => {
     if (!VALID_TABS.has(activeTab)) {
       setActiveTab('home');
@@ -1012,12 +1040,16 @@ const App = () => {
   useEffect(() => {
     fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_FEEDS.political.url)}`)
       .then((res) => res.json())
-      .then((data) => data.status === 'ok' && setTickerItems(data.items.slice(0, 10).map((a) => a.title)));
+      .then((data) => data.status === 'ok' && setTickerItems(data.items.slice(0, 10).map((a) => a.title)))
+      .catch((error) => {
+        console.error('Ticker feed failed', error);
+        setTickerItems(['Markets update unavailable - retrying shortly']);
+      });
   }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20 relative overflow-hidden flex flex-col">
-      <PortalHeader activeTab={activeTab} setActiveTab={setActiveTab} tickerItems={tickerItems} onBack={() => setSelectedArticle(null)} isReading={!!selectedArticle} />
+      <PortalHeader activeTab={activeTab} onTabChange={handleTabChange} tickerItems={tickerItems} isReading={!!selectedArticle} />
 
       <main className="relative z-20 flex-grow">
         {selectedArticle ? (
@@ -1027,8 +1059,8 @@ const App = () => {
         ) : (
           <>
             <div className="md:hidden flex gap-2 mb-2 overflow-x-auto pb-2 px-4 mt-4 bg-white border-b border-slate-200">
-               {['home', 'tracker', 'military', 'conspiracy', 'finance', 'shopping'].map((tab) => (
-                <button key={tab} onClick={() => setActiveTab(tab)} className={`flex-shrink-0 px-4 py-2 rounded-full font-bold text-xs uppercase border ${activeTab === tab ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-500 border-slate-200'}`}>
+              {['home', 'tracker', 'military', 'conspiracy', 'finance', 'shopping'].map((tab) => (
+                <button key={tab} onClick={() => handleTabChange(tab)} className={`flex-shrink-0 px-4 py-2 rounded-full font-bold text-xs uppercase border ${activeTab === tab ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-500 border-slate-200'}`}>
                   {tab === 'tracker' ? 'WTFWN' : tab === 'home' ? 'Home' : tab === 'conspiracy' ? 'Truth' : tab}
                 </button>
               ))}
