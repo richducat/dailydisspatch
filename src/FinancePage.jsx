@@ -48,13 +48,45 @@ const TV_CRYPTO_SYMBOL_MAP = {
 
 const DEX_SEARCH_ENDPOINT = 'https://api.dexscreener.com/latest/dex/search?q=';
 const DEX_TOKEN_ENDPOINT = 'https://api.dexscreener.com/latest/dex/tokens/';
-const DEFAULT_DEX_QUERIES = ['solana', 'ethereum', 'bitcoin', 'meme', 'ai'];
+const DEFAULT_DEX_QUERIES = ['bitcoin', 'ethereum', 'solana', 'chainlink', 'dogecoin', 'avalanche'];
+const PRIMARY_CHAINS = new Set(['solana', 'ethereum', 'base', 'bsc', 'arbitrum']);
+const ACCEPTED_QUOTES = new Set(['USDT', 'USDC', 'USD', 'WETH', 'ETH', 'SOL', 'BNB']);
+const CORE_FEED_SYMBOLS = new Set([
+  'BTC',
+  'ETH',
+  'SOL',
+  'BNB',
+  'XRP',
+  'DOGE',
+  'ADA',
+  'AVAX',
+  'LINK',
+  'MATIC',
+  'SHIB',
+  'PEPE',
+  'LTC',
+  'TRX',
+  'ATOM',
+  'NEAR',
+  'ARB',
+  'OP',
+  'UNI',
+  'AAVE',
+  'INJ',
+  'SUI',
+  'TON',
+  'BONK',
+  'WIF'
+]);
 const CHAIN_NEWS_IMAGE = {
   solana: 'https://images.unsplash.com/photo-1642543492481-44e81e3914a7?w=800&auto=format&fit=crop&q=60',
   ethereum: 'https://images.unsplash.com/photo-1640340434855-6084b1f4901c?w=800&auto=format&fit=crop&q=60',
   bsc: 'https://images.unsplash.com/photo-1614028674026-a65e31bfd27c?w=800&auto=format&fit=crop&q=60',
   base: 'https://images.unsplash.com/photo-1559526324-4b87b5e36e44?w=800&auto=format&fit=crop&q=60'
 };
+
+const TOP_TICKER_TAPE_SRC = 'https://www.tradingview-widget.com/embed-widget/ticker-tape/?locale=en#%7B%22symbols%22%3A%5B%7B%22proName%22%3A%22FOREXCOM%3ASPXUSD%22%2C%22title%22%3A%22S%26P%20500%22%7D%2C%7B%22proName%22%3A%22FOREXCOM%3ANSXUSD%22%2C%22title%22%3A%22Nasdaq%20100%22%7D%2C%7B%22proName%22%3A%22BITSTAMP%3ABTCUSD%22%2C%22title%22%3A%22Bitcoin%22%7D%2C%7B%22proName%22%3A%22BITSTAMP%3AETHUSD%22%2C%22title%22%3A%22Ethereum%22%7D%2C%7B%22proName%22%3A%22BINANCE%3ASOLUSDT%22%2C%22title%22%3A%22Solana%22%7D%2C%7B%22proName%22%3A%22NASDAQ%3ANVDA%22%2C%22title%22%3A%22NVIDIA%22%7D%2C%7B%22proName%22%3A%22NASDAQ%3ATSLA%22%2C%22title%22%3A%22Tesla%22%7D%5D%2C%22showSymbolLogo%22%3Atrue%2C%22colorTheme%22%3A%22dark%22%2C%22isTransparent%22%3Afalse%2C%22displayMode%22%3A%22adaptive%22%2C%22width%22%3A%22100%25%22%2C%22height%22%3A46%7D';
+const MARKET_OVERVIEW_SRC = 'https://www.tradingview-widget.com/embed-widget/tickers/?locale=en#%7B%22symbols%22%3A%5B%7B%22proName%22%3A%22FOREXCOM%3ASPXUSD%22%2C%22title%22%3A%22S%26P%20500%22%7D%2C%7B%22proName%22%3A%22FOREXCOM%3ANSXUSD%22%2C%22title%22%3A%22Nasdaq%20100%22%7D%2C%7B%22proName%22%3A%22FX_IDC%3AEURUSD%22%2C%22title%22%3A%22EUR%2FUSD%22%7D%2C%7B%22proName%22%3A%22BITSTAMP%3ABTCUSD%22%2C%22title%22%3A%22Bitcoin%22%7D%2C%7B%22proName%22%3A%22BITSTAMP%3AETHUSD%22%2C%22title%22%3A%22Ethereum%22%7D%5D%2C%22colorTheme%22%3A%22dark%22%2C%22isTransparent%22%3Atrue%2C%22showSymbolLogo%22%3Atrue%2C%22width%22%3A%22100%25%22%2C%22height%22%3A180%7D';
 
 const safeNumber = (value, fallback = 0) => {
   const parsed = Number(value);
@@ -113,6 +145,52 @@ const dedupePairs = (pairs) => {
   return Array.from(byKey.values());
 };
 
+const dedupeByToken = (pairs) => {
+  const byToken = new Map();
+  pairs.forEach((pair) => {
+    if (!pair?.tokenAddress) return;
+    const key = `${pair.chainId}:${pair.tokenAddress}`;
+    const existing = byToken.get(key);
+    if (!existing || pair.liquidity > existing.liquidity) {
+      byToken.set(key, pair);
+    }
+  });
+  return Array.from(byToken.values());
+};
+
+const dedupeBySymbol = (pairs) => {
+  const bySymbol = new Map();
+  pairs.forEach((pair) => {
+    if (!pair?.symbol) return;
+    const existing = bySymbol.get(pair.symbol);
+    if (!existing || pair.volume24h > existing.volume24h) {
+      bySymbol.set(pair.symbol, pair);
+    }
+  });
+  return Array.from(bySymbol.values());
+};
+
+const filterPairsForQuality = (pairs, options = {}) => {
+  const {
+    minLiquidity = 15000,
+    minVolume = 2500,
+    maxAbsChange = 80,
+    requireAcceptedQuote = true,
+    allowSelfQuote = true
+  } = options;
+
+  return pairs.filter((pair) => {
+    if (!pair) return false;
+    if (!PRIMARY_CHAINS.has(pair.chainId)) return false;
+    if (pair.liquidity < minLiquidity) return false;
+    if (pair.volume24h < minVolume) return false;
+    if (Math.abs(pair.price_change_percentage_24h) > maxAbsChange) return false;
+    if (requireAcceptedQuote && !ACCEPTED_QUOTES.has(pair.quoteSymbol)) return false;
+    if (!allowSelfQuote && pair.symbol === pair.quoteSymbol) return false;
+    return true;
+  });
+};
+
 const selectBestPair = (pairs, symbolHint = '') => {
   if (!Array.isArray(pairs) || pairs.length === 0) return null;
   const hint = String(symbolHint || '').toUpperCase();
@@ -161,6 +239,8 @@ const FinancePage = () => {
 
   const wrapperRef = useRef(null);
   const aiTimerRef = useRef(null);
+  const scanRequestRef = useRef(0);
+  const tokenRequestRef = useRef(0);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -206,88 +286,8 @@ const FinancePage = () => {
   const loadDexUniverse = async (queries, signal) => {
     const results = await Promise.allSettled(queries.map((query) => fetchDexSearchPairs(query, signal)));
     const merged = results.flatMap((result) => (result.status === 'fulfilled' ? result.value : []));
-
-    return dedupePairs(merged).filter((pair) => pair.liquidity > 10000);
+    return dedupeByToken(filterPairsForQuality(dedupePairs(merged), { allowSelfQuote: false }));
   };
-
-  useEffect(() => {
-    const container = document.getElementById('tv-ticker-tape');
-    if (!container) return;
-
-    setTopWidgetOffline(false);
-    container.innerHTML = '';
-    const widgetContainer = document.createElement('div');
-    widgetContainer.className = 'tradingview-widget-container__widget';
-    container.appendChild(widgetContainer);
-
-    const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js';
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      symbols: [
-        { proName: 'FOREXCOM:SPXUSD', title: 'S&P 500' },
-        { proName: 'FOREXCOM:NSXUSD', title: 'Nasdaq 100' },
-        { proName: 'BITSTAMP:BTCUSD', title: 'Bitcoin' },
-        { proName: 'BITSTAMP:ETHUSD', title: 'Ethereum' },
-        { proName: 'BINANCE:SOLUSDT', title: 'Solana' },
-        { proName: 'NASDAQ:NVDA', title: 'NVIDIA' },
-        { proName: 'NASDAQ:TSLA', title: 'Tesla' }
-      ],
-      showSymbolLogo: true,
-      colorTheme: 'dark',
-      isTransparent: false,
-      displayMode: 'adaptive',
-      locale: 'en'
-    });
-
-    script.onerror = () => {
-      setTopWidgetOffline(true);
-    };
-
-    container.appendChild(script);
-
-    return () => {
-      container.innerHTML = '';
-    };
-  }, []);
-
-  useEffect(() => {
-    if (view !== 'HOME') return;
-
-    const container = document.getElementById('tv-market-overview');
-    if (!container) return;
-
-    setOverviewWidgetOffline(false);
-    container.innerHTML = '';
-    const widgetContainer = document.createElement('div');
-    widgetContainer.className = 'tradingview-widget-container__widget';
-    container.appendChild(widgetContainer);
-
-    const script = document.createElement('script');
-    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-tickers.js';
-    script.async = true;
-    script.innerHTML = JSON.stringify({
-      symbols: [
-        { proName: 'FOREXCOM:SPXUSD', title: 'S&P 500' },
-        { proName: 'FOREXCOM:NSXUSD', title: 'Nasdaq 100' },
-        { proName: 'FX_IDC:EURUSD', title: 'EUR/USD' },
-        { proName: 'BITSTAMP:BTCUSD', title: 'Bitcoin' },
-        { proName: 'BITSTAMP:ETHUSD', title: 'Ethereum' }
-      ],
-      colorTheme: 'dark',
-      isTransparent: true,
-      showSymbolLogo: true,
-      locale: 'en'
-    });
-    script.onerror = () => {
-      setOverviewWidgetOffline(true);
-    };
-    container.appendChild(script);
-
-    return () => {
-      container.innerHTML = '';
-    };
-  }, [view]);
 
   const generateNews = (symbol, count = 4) => {
     const sources = [
@@ -392,7 +392,11 @@ const FinancePage = () => {
         const universe = await loadDexUniverse(DEFAULT_DEX_QUERIES, abortController.signal);
         if (cancelled || universe.length === 0) return;
 
-        const movers = [...universe]
+        const coreUniverse = dedupeBySymbol(universe.filter((pair) => CORE_FEED_SYMBOLS.has(pair.symbol)));
+        const displayUniverse = coreUniverse.length > 0 ? coreUniverse : dedupeBySymbol(universe);
+        if (displayUniverse.length === 0) return;
+
+        const movers = [...displayUniverse]
           .sort((a, b) => Math.abs(b.price_change_percentage_24h) - Math.abs(a.price_change_percentage_24h))
           .slice(0, 12);
 
@@ -405,17 +409,17 @@ const FinancePage = () => {
           imageUrl: pair.imageUrl || CHAIN_NEWS_IMAGE[pair.chainId] || CHAIN_NEWS_IMAGE.solana
         }));
 
-        const trending = [...universe]
+        const trending = [...displayUniverse]
           .sort((a, b) => b.volume24h - a.volume24h)
           .slice(0, 5);
 
-        const avgChange = universe.reduce((sum, pair) => sum + pair.price_change_percentage_24h, 0) / universe.length;
-        const liquidityLeader = [...universe].sort((a, b) => b.volume24h - a.volume24h)[0];
+        const avgChange = displayUniverse.reduce((sum, pair) => sum + pair.price_change_percentage_24h, 0) / displayUniverse.length;
+        const liquidityLeader = [...displayUniverse].sort((a, b) => b.volume24h - a.volume24h)[0];
 
         setFeedNews(feed);
         setTrendingPairs(trending);
         setMarketSnapshot({
-          totalPairs: universe.length,
+          totalPairs: displayUniverse.length,
           avgChange,
           leaderSymbol: liquidityLeader?.symbol || 'N/A',
           leaderVolume: liquidityLeader?.volume24h || 0
@@ -553,17 +557,15 @@ const FinancePage = () => {
 
       try {
         const pairs = await fetchDexSearchPairs(searchInput, abortController.signal);
-        const dedupedBySymbol = [];
-        const seen = new Set();
-
-        pairs.forEach((pair) => {
-          const key = `${pair.symbol}-${pair.chainId}`;
-          if (seen.has(key)) return;
-          seen.add(key);
-          dedupedBySymbol.push(pair);
-        });
-
-        const topMatches = dedupedBySymbol
+        const topMatches = dedupeBySymbol(
+          filterPairsForQuality(pairs, {
+            minLiquidity: 5000,
+            minVolume: 500,
+            maxAbsChange: 150,
+            requireAcceptedQuote: true,
+            allowSelfQuote: false
+          })
+        )
           .sort((a, b) => (b.liquidity + b.volume24h) - (a.liquidity + a.volume24h))
           .slice(0, 8);
 
@@ -590,6 +592,8 @@ const FinancePage = () => {
   }, [searchInput]);
 
   const runScanner = async (type) => {
+    const requestId = scanRequestRef.current + 1;
+    scanRequestRef.current = requestId;
     setScanning(true);
     setActiveScan(type);
     setScannerResults([]);
@@ -604,16 +608,22 @@ const FinancePage = () => {
       };
 
       const universe = await loadDexUniverse(queryMap[type] || DEFAULT_DEX_QUERIES);
+      if (requestId !== scanRequestRef.current) return;
       if (!universe.length) throw new Error('No market data returned');
 
       let results = [];
 
       if (type === 'MOON_BAG') {
         results = universe
-          .filter((pair) => pair.chainId === 'solana' && pair.liquidity > 15000)
+          .filter((pair) => pair.chainId === 'solana')
           .map((pair) => ({
             ...pair,
-            score: (pair.volume24h / Math.max(pair.liquidity, 1)) + Math.abs(pair.price_change_percentage_24h) / 3
+            score: Math.min(
+              100,
+              (pair.volume24h / Math.max(pair.liquidity, 1)) * 22 +
+              Math.min(pair.txns24h / 35, 45) +
+              Math.min(Math.abs(pair.price_change_percentage_24h), 35)
+            )
           }))
           .sort((a, b) => b.score - a.score)
           .slice(0, 6);
@@ -622,30 +632,49 @@ const FinancePage = () => {
           .filter((pair) => pair.txns24h > 0)
           .map((pair) => ({
             ...pair,
-            score: (pair.txns24h / 100) + (pair.volume24h / Math.max(pair.liquidity, 1))
+            score: Math.min(
+              100,
+              Math.min(pair.txns24h / 40, 70) +
+              (pair.volume24h / Math.max(pair.liquidity, 1)) * 15
+            )
           }))
           .sort((a, b) => b.score - a.score)
           .slice(0, 6);
       } else if (type === 'VOLATILITY') {
-        results = universe
+        results = filterPairsForQuality(universe, {
+          minLiquidity: 20000,
+          minVolume: 4000,
+          maxAbsChange: 180,
+          requireAcceptedQuote: false
+        })
           .sort((a, b) => Math.abs(b.price_change_percentage_24h) - Math.abs(a.price_change_percentage_24h))
           .slice(0, 6);
       } else {
         results = universe
           .map((pair) => ({
             ...pair,
-            score: pair.txns24h + (pair.volume24h / 10000)
+            score: Math.min(
+              100,
+              Math.min(pair.txns24h / 45, 55) +
+              (pair.volume24h / Math.max(pair.liquidity, 1)) * 20 +
+              Math.min(Math.abs(pair.price_change_percentage_24h), 25)
+            )
           }))
           .sort((a, b) => b.score - a.score)
           .slice(0, 6);
       }
 
-      setScannerResults(results);
+      if (requestId !== scanRequestRef.current) return;
+      setScannerResults(dedupeBySymbol(results).slice(0, 6));
     } catch (e) {
       console.error('Scanner failed', e);
-      setErrorMsg('DexScreener feed interrupted. Please retry in a few seconds.');
+      if (requestId === scanRequestRef.current) {
+        setErrorMsg('DexScreener feed interrupted. Please retry in a few seconds.');
+      }
     } finally {
-      setScanning(false);
+      if (requestId === scanRequestRef.current) {
+        setScanning(false);
+      }
     }
   };
 
@@ -656,17 +685,35 @@ const FinancePage = () => {
 
     if (token?.tokenAddress) {
       const byAddress = await fetchDexPairsByTokenAddress(token.tokenAddress);
-      const matchByAddress = selectBestPair(byAddress, token.symbol);
+      const matchByAddress = selectBestPair(
+        filterPairsForQuality(byAddress, {
+          minLiquidity: 4000,
+          minVolume: 500,
+          maxAbsChange: 180,
+          requireAcceptedQuote: false,
+          allowSelfQuote: false
+        }),
+        token.symbol
+      );
       if (matchByAddress) return matchByAddress;
     }
 
     const query = token?.symbol || token?.name;
     if (!query) return null;
     const bySearch = await fetchDexSearchPairs(query);
-    return selectBestPair(bySearch, token.symbol);
+    const refined = filterPairsForQuality(bySearch, {
+      minLiquidity: 4000,
+      minVolume: 500,
+      maxAbsChange: 180,
+      requireAcceptedQuote: false,
+      allowSelfQuote: false
+    });
+    return selectBestPair(refined, token.symbol) || selectBestPair(bySearch, token.symbol);
   };
 
   const handleSelectToken = async (token) => {
+    const requestId = tokenRequestRef.current + 1;
+    tokenRequestRef.current = requestId;
     const displayName = token.name || token.symbol || '';
     setSearchInput(displayName);
     setShowDropdown(false);
@@ -687,13 +734,16 @@ const FinancePage = () => {
 
     const selectedTicker = String(token.symbol || '').toUpperCase();
     if (!selectedTicker) {
-      setErrorMsg('Invalid symbol received. Please try another asset.');
-      setLoading(false);
-      setAnalyzing(false);
+      if (requestId === tokenRequestRef.current) {
+        setErrorMsg('Invalid symbol received. Please try another asset.');
+        setLoading(false);
+        setAnalyzing(false);
+      }
       return;
     }
     try {
       const resolvedPair = await resolveDexPair(token);
+      if (requestId !== tokenRequestRef.current) return;
       if (!resolvedPair) {
         throw new Error('No pair found for this token');
       }
@@ -713,16 +763,21 @@ const FinancePage = () => {
 
       setLiveData(processedData);
       aiTimerRef.current = window.setTimeout(() => {
+        if (requestId !== tokenRequestRef.current) return;
         setAiInsights(generateAiInsights(processedData));
         setAnalyzing(false);
         aiTimerRef.current = null;
       }, 1500);
     } catch (error) {
       console.error('Error:', error);
-      setErrorMsg('Could not resolve live DexScreener data for this token.');
-      setAnalyzing(false);
+      if (requestId === tokenRequestRef.current) {
+        setErrorMsg('Could not resolve live DexScreener data for this token.');
+        setAnalyzing(false);
+      }
     } finally {
-      setLoading(false);
+      if (requestId === tokenRequestRef.current) {
+        setLoading(false);
+      }
     }
   };
 
@@ -809,7 +864,16 @@ const FinancePage = () => {
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-emerald-500/30 pb-20">
       <div className="bg-slate-900 border-b border-slate-800 h-10 overflow-hidden relative z-50">
-        <div id="tv-ticker-tape" className="tradingview-widget-container h-full w-full bg-slate-950"></div>
+        <iframe
+          id="tv-ticker-tape"
+          title="TradingView ticker tape"
+          src={TOP_TICKER_TAPE_SRC}
+          className="h-full w-full border-0 bg-slate-950"
+          loading="lazy"
+          onLoad={() => setTopWidgetOffline(false)}
+          onError={() => setTopWidgetOffline(true)}
+          referrerPolicy="strict-origin-when-cross-origin"
+        />
         {topWidgetOffline && (
           <div className="absolute inset-0 flex items-center bg-slate-950/95 text-slate-300 text-xs font-semibold overflow-hidden whitespace-nowrap">
             <div className="animate-finance-ticker inline-flex items-center">
@@ -896,7 +960,16 @@ const FinancePage = () => {
         {view === 'HOME' && (
           <div className="space-y-8 animate-fade-in">
             <div className="h-[200px] w-full bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden p-2 relative">
-              <div id="tv-market-overview" className="tradingview-widget-container h-full w-full"></div>
+              <iframe
+                id="tv-market-overview"
+                title="TradingView market overview"
+                src={MARKET_OVERVIEW_SRC}
+                className="h-full w-full border-0"
+                loading="lazy"
+                onLoad={() => setOverviewWidgetOffline(false)}
+                onError={() => setOverviewWidgetOffline(true)}
+                referrerPolicy="strict-origin-when-cross-origin"
+              />
               {overviewWidgetOffline && (
                 <div className="absolute inset-2 rounded-xl border border-slate-700 bg-slate-900 flex flex-col items-center justify-center gap-2 text-center">
                   <WifiOff className="w-5 h-5 text-amber-400" />
