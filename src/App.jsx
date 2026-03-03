@@ -574,8 +574,8 @@ const Footer = ({ setActiveTab }) => (
     <div className="container mx-auto px-4 mt-4 text-center">
       <ins className="adsbygoogle"
         style={{ display: 'block' }}
-        data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-        data-ad-slot="YYYYYYYYYY"
+        data-ad-client="ca-pub-9665484869013517"
+        data-ad-slot="2756452700"
         data-ad-format="horizontal"
         data-full-width-responsive="true"></ins>
     </div>
@@ -616,8 +616,8 @@ const YahooStyleHome = ({ onArticleSelect, setActiveTab }) => {
             {/* Google AdSense Vertical */}
             <ins className="adsbygoogle"
               style={{ display: 'block' }}
-              data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-              data-ad-slot="XXXXXXXXXX"
+              data-ad-client="ca-pub-9665484869013517"
+              data-ad-slot="8188238206"
               data-ad-format="auto"
               data-full-width-responsive="true"></ins>
           </div>
