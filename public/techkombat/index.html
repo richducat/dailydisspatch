@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tech Kombat - Silicon Clash</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box
+        }
+
+        body {
+            background: #000;
+            overflow: hidden;
+            font-family: 'Press Start 2P', cursive;
+            user-select: none;
+            -webkit-user-select: none
+        }
+
+        canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            image-rendering: pixelated
+        }
+
+        #mobile-controls {
+            display: none;
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            z-index: 100;
+            padding: 0 20px;
+            justify-content: space-between;
+            pointer-events: none
+        }
+
+        .d-pad {
+            width: 130px;
+            height: 130px;
+            position: relative;
+            pointer-events: auto
+        }
+
+        .d-btn {
+            position: absolute;
+            width: 42px;
+            height: 42px;
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 16px
+        }
+
+        .d-up {
+            top: 0;
+            left: 44px
+        }
+
+        .d-down {
+            bottom: 0;
+            left: 44px
+        }
+
+        .d-left {
+            top: 44px;
+            left: 0
+        }
+
+        .d-right {
+            top: 44px;
+            right: 0
+        }
+
+        .act-btns {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+            padding-bottom: 15px;
+            pointer-events: auto
+        }
+
+        .a-btn {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #fff;
+            font-family: inherit
+        }
+
+        .btn-punch {
+            background: rgba(231, 76, 60, 0.5);
+            border: 2px solid #e74c3c
+        }
+
+        .btn-kick {
+            background: rgba(46, 204, 113, 0.5);
+            border: 2px solid #2ecc71
+        }
+
+        .btn-special {
+            background: rgba(52, 152, 219, 0.5);
+            border: 2px solid #3498db
+        }
+
+        .btn-block {
+            background: rgba(241, 196, 15, 0.5);
+            border: 2px solid #f1c40f
+        }
+    </style>
+</head>
+
+<body>
+    <canvas id="gc"></canvas>
+    <div id="mobile-controls">
+        <div class="d-pad">
+            <div class="d-btn d-up" data-key="ArrowUp">▲</div>
+            <div class="d-btn d-down" data-key="ArrowDown">▼</div>
+            <div class="d-btn d-left" data-key="ArrowLeft">◀</div>
+            <div class="d-btn d-right" data-key="ArrowRight">▶</div>
+        </div>
+        <div class="act-btns">
+            <div class="a-btn btn-punch" data-key="z">ATK</div>
+            <div class="a-btn btn-kick" data-key="x">KCK</div>
+            <div class="a-btn btn-special" data-key="c">SPL</div>
+            <div class="a-btn btn-block" data-key="ArrowDown">BLK</div>
+        </div>
+    </div>
+    <script src="techkombat.js"></script>
+</body>
+
+</html>
