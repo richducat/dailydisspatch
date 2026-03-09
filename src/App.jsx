@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
-import FinancePage from './FinancePage';
+import React, { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import ErrorBoundary from './ErrorBoundary';
+import ThirdPartyBoot from './ThirdPartyBoot';
+import { fetchFeedItems, getFeedSnapshot } from './newsFeed';
 import {
   AlertTriangle,
   Globe,
@@ -58,6 +59,8 @@ import {
   Info,
   Shield
 } from 'lucide-react';
+
+const FinancePage = lazy(() => import('./FinancePage'));
 
 // --- UTILS ---
 
@@ -192,13 +195,6 @@ const CONSPIRACY_PRODUCTS = [
   { name: 'Tinfoil Beanie (Heavy Duty)', desc: 'Blocks 6G waves.', price: '$15.00' }
 ];
 
-const RSS_FEEDS = {
-  political: { url: 'https://thehill.com/homenews/administration/feed/', name: 'Political Intel' },
-  defense: { url: 'https://www.military.com/rss-feeds/content?type=news', name: 'Military Ops' },
-  conspiracy: { url: 'https://www.upi.com/rss/Odd_News/', name: 'The Files' },
-  finance: { url: 'https://www.cnbc.com/id/10000664/device/rss/rss.html', name: 'Market Watch' }
-};
-
 const SATIRE_TEMPLATES = {
   openers: ['In a move that surprised absolutely no one,', 'Sources close to the situation,', 'It has come to our attention that reality is glitching again, as'],
   middles: [
@@ -245,14 +241,17 @@ const VALID_TABS = new Set([
 
 // --- HELPER COMPONENTS ---
 
-const NewsImage = ({ item, category, className }) => {
+const NewsImage = ({ item, category, className, priority = false }) => {
   const [imgSrc, setImgSrc] = useState(null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     const src = getArticleImage(item);
-    if (src) setImgSrc(src);
-    else setError(true);
+    setError(false);
+    setImgSrc(src || null);
+    if (!src) {
+      setError(true);
+    }
   }, [item]);
 
   if (!imgSrc || error) {
@@ -282,7 +281,18 @@ const NewsImage = ({ item, category, className }) => {
     );
   }
 
-  return <img src={imgSrc} alt={item.title} className={`object-cover w-full h-full ${className}`} onError={() => setError(true)} />;
+  return (
+    <img
+      src={imgSrc}
+      alt={item.title}
+      className={`object-cover w-full h-full ${className}`}
+      loading={priority ? 'eager' : 'lazy'}
+      decoding="async"
+      fetchpriority={priority ? 'high' : 'low'}
+      referrerPolicy="strict-origin-when-cross-origin"
+      onError={() => setError(true)}
+    />
+  );
 };
 
 const BeefMeter = ({ level }) => {
@@ -312,9 +322,23 @@ const SatiricalReader = ({ article, onBack }) => {
 
   const handleCopyRant = () => {
     const rant = `I CAN'T BELIEVE THIS! ${article.title.toUpperCase()} is just another example of the swamp draining itself into my living room! WAKE UP PEOPLE! #TheDailyDispatch`;
-    navigator.clipboard.writeText(rant);
-    setCopyStatus('Copied!');
-    setTimeout(() => setCopyStatus('Copy Rant'), 2000);
+    if (!navigator.clipboard?.writeText) {
+      setCopyStatus('Copy failed');
+      setTimeout(() => setCopyStatus('Copy Rant'), 2000);
+      return;
+    }
+
+    navigator.clipboard
+      .writeText(rant)
+      .then(() => {
+        setCopyStatus('Copied!');
+      })
+      .catch(() => {
+        setCopyStatus('Copy failed');
+      })
+      .finally(() => {
+        setTimeout(() => setCopyStatus('Copy Rant'), 2000);
+      });
   };
 
   const toggleFactCheck = () => {
@@ -395,6 +419,48 @@ const VibeMarket = () => (
       <div className="flex justify-between items-center"><div className="text-xs font-bold flex gap-2"><span className="bg-red-100 p-1 rounded">🔥</span> Chaos</div><div className="text-right text-sm font-black text-green-600">+850% <TrendingUp className="inline w-3 h-3" /></div></div>
     </div>
   </div>
+);
+
+const TechKombatBanner = () => (
+  <a
+    href="/techkombat/index.html"
+    className="group relative block overflow-hidden rounded-xl border-2 border-slate-900 bg-slate-950 text-white shadow-xl mb-6"
+  >
+    <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-red-500/30 blur-3xl" aria-hidden="true"></div>
+    <div className="absolute left-1/3 top-10 h-28 w-28 rounded-full bg-blue-500/25 blur-3xl" aria-hidden="true"></div>
+    <div className="absolute -bottom-12 left-10 h-36 w-36 rounded-full bg-yellow-400/20 blur-3xl" aria-hidden="true"></div>
+    <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.07)_0%,rgba(255,255,255,0)_45%,rgba(250,204,21,0.12)_100%)]" aria-hidden="true"></div>
+
+    <div className="relative flex flex-col gap-5 p-5 md:flex-row md:items-center md:justify-between md:p-6">
+      <div className="max-w-2xl">
+        <div className="inline-flex items-center gap-2 rounded-full border border-red-400/40 bg-red-500/15 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-red-100">
+          <Zap className="h-3.5 w-3.5" />
+          Arcade Alert
+        </div>
+        <h3 className="mt-3 text-2xl font-black uppercase tracking-tight text-white md:text-3xl">
+          Tech Kombat Is Live In The Simulation
+        </h3>
+        <p className="mt-2 max-w-xl text-sm leading-relaxed text-slate-200 md:text-base">
+          Step out of the newsroom and into a retro cage match. Pick a tech titan, throw hands, build meter, and finish the round with specials.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2 text-[11px] font-black uppercase tracking-wide text-slate-200">
+          <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1">1 Player Arcade</span>
+          <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1">Punch Kick Special</span>
+          <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1">Silicon Clash</span>
+        </div>
+      </div>
+
+      <div className="flex flex-col items-start gap-3 md:items-end">
+        <div className="rounded-lg border border-yellow-400/35 bg-black/30 px-4 py-3 font-mono text-xs uppercase text-yellow-200">
+          Elon vs Zuck vs Gates
+        </div>
+        <span className="inline-flex items-center gap-2 rounded-full bg-yellow-400 px-5 py-3 text-xs font-black uppercase tracking-[0.18em] text-slate-950 transition-transform duration-200 group-hover:translate-x-1">
+          Play Tech Kombat
+          <ExternalLink className="h-4 w-4" />
+        </span>
+      </div>
+    </div>
+  </a>
 );
 
 const SidebarNav = ({ setActiveTab }) => (
@@ -585,25 +651,34 @@ const Footer = ({ setActiveTab }) => (
 // --- PAGES ---
 
 const YahooStyleHome = ({ onArticleSelect, setActiveTab }) => {
-  const [news, setNews] = useState({ politics: [], defense: [], weird: [] });
+  const [news, setNews] = useState(() => ({
+    politics: getFeedSnapshot('political', 6),
+    defense: getFeedSnapshot('defense', 4)
+  }));
+
   useEffect(() => {
+    let cancelled = false;
+
     const fetchAll = async () => {
-      try {
-        const [p, d, w] = await Promise.all([
-          fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_FEEDS.political.url)}`).then((r) => r.json()),
-          fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_FEEDS.defense.url)}`).then((r) => r.json()),
-          fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_FEEDS.conspiracy.url)}`).then((r) => r.json())
-        ]);
-        setNews({
-          politics: p.status === 'ok' ? p.items.slice(0, 6) : [],
-          defense: d.status === 'ok' ? d.items.slice(0, 4) : [],
-          weird: w.status === 'ok' ? w.items.slice(0, 5) : []
-        });
-      } catch (e) {
-        console.error(e);
+      const [politics, defense] = await Promise.all([
+        fetchFeedItems('political', { limit: 6 }),
+        fetchFeedItems('defense', { limit: 4 })
+      ]);
+
+      if (!cancelled) {
+        setNews({ politics, defense });
       }
     };
-    fetchAll();
+
+    fetchAll().catch((error) => {
+      if (!cancelled) {
+        console.error('Home feed refresh failed', error);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -626,7 +701,7 @@ const YahooStyleHome = ({ onArticleSelect, setActiveTab }) => {
           {news.politics[0] && (
             <div onClick={() => onArticleSelect(news.politics[0])} className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden mb-6 cursor-pointer group h-80 relative">
               <div className="absolute inset-0">
-                <NewsImage item={news.politics[0]} category="politics" className="brightness-75 group-hover:brightness-50 transition-all" />
+                <NewsImage item={news.politics[0]} category="politics" className="brightness-75 group-hover:brightness-50 transition-all" priority />
               </div>
               <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black via-black/70 to-transparent p-6 pt-20">
                 <span className="bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded uppercase mb-2 inline-block">Top Story</span>
@@ -634,6 +709,7 @@ const YahooStyleHome = ({ onArticleSelect, setActiveTab }) => {
               </div>
             </div>
           )}
+          <TechKombatBanner />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
               <h3 className="font-bold text-lg mb-3 flex items-center gap-2 pb-2 border-b border-slate-100"><Globe className="w-5 h-5 text-blue-600" /> Political Circus</h3>
@@ -765,12 +841,26 @@ const MilitaryMap = () => (
 
 const MilitaryDashboard = ({ onArticleSelect, setActiveTab, feed }) => {
   const [defcon, setDefcon] = useState(3);
-  const [news, setNews] = useState([]);
+  const [news, setNews] = useState(() => getFeedSnapshot('defense', 5));
 
   useEffect(() => {
-    fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_FEEDS.defense.url)}`)
-      .then((res) => res.json())
-      .then((data) => data.status === 'ok' && setNews(data.items.slice(0, 5)));
+    let cancelled = false;
+
+    fetchFeedItems('defense', { limit: 5 })
+      .then((items) => {
+        if (!cancelled) {
+          setNews(items);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error('Defense feed refresh failed', error);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
@@ -886,7 +976,7 @@ const SatirePage = ({ feed, onArticleSelect, setActiveTab }) => {
 
 const ConspiracyPage = ({ onArticleSelect, setActiveTab }) => {
   const [jonesRant, setJonesRant] = useState('THEY ARE TURNING THE FROGS GAY!');
-  const [weirdNews, setWeirdNews] = useState([]);
+  const [weirdNews, setWeirdNews] = useState(() => getFeedSnapshot('conspiracy', 5));
   const [loading, setLoading] = useState(false);
   const canvasRef = useRef(null);
 
@@ -898,9 +988,23 @@ const ConspiracyPage = ({ onArticleSelect, setActiveTab }) => {
   };
 
   useEffect(() => {
-    fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_FEEDS.conspiracy.url)}`)
-      .then((r) => r.json())
-      .then((d) => d.status === 'ok' && setWeirdNews(d.items.slice(0, 5)));
+    let cancelled = false;
+
+    fetchFeedItems('conspiracy', { limit: 5 })
+      .then((items) => {
+        if (!cancelled) {
+          setWeirdNews(items);
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error('Conspiracy feed refresh failed', error);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -1022,7 +1126,9 @@ const PoliticalZoo = () => {
 const App = () => {
   const [activeTab, setActiveTab] = useState('home');
   const [selectedArticle, setSelectedArticle] = useState(null);
-  const [tickerItems, setTickerItems] = useState([]);
+  const [tickerItems, setTickerItems] = useState(() =>
+    getFeedSnapshot('political', 10).map((article) => article.title)
+  );
 
   const handleTabChange = (tab) => {
     setSelectedArticle(null);
@@ -1039,17 +1145,29 @@ const App = () => {
   }, [activeTab]);
 
   useEffect(() => {
-    fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(RSS_FEEDS.political.url)}`)
-      .then((res) => res.json())
-      .then((data) => data.status === 'ok' && setTickerItems(data.items.slice(0, 10).map((a) => a.title)))
+    let cancelled = false;
+
+    fetchFeedItems('political', { limit: 10 })
+      .then((items) => {
+        if (!cancelled) {
+          setTickerItems(items.map((article) => article.title));
+        }
+      })
       .catch((error) => {
-        console.error('Ticker feed failed', error);
-        setTickerItems(['Markets update unavailable - retrying shortly']);
+        if (!cancelled) {
+          console.error('Ticker feed failed', error);
+          setTickerItems(['Markets update unavailable - retrying shortly']);
+        }
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20 relative overflow-hidden flex flex-col">
+      <ThirdPartyBoot />
       <PortalHeader activeTab={activeTab} onTabChange={handleTabChange} tickerItems={tickerItems} isReading={!!selectedArticle} />
 
       <main className="relative z-20 flex-grow">
@@ -1067,18 +1185,20 @@ const App = () => {
               ))}
             </div>
 
-            {activeTab === 'home' && <YahooStyleHome onArticleSelect={setSelectedArticle} setActiveTab={setActiveTab} />}
-            {activeTab === 'tracker' && <WTFWNPage setActiveTab={setActiveTab} />}
-            {activeTab === 'military' && <MilitaryDashboard onArticleSelect={setSelectedArticle} setActiveTab={setActiveTab} feed={SATIRE_HEADLINES} />}
-            {activeTab === 'conspiracy' && <ConspiracyPage onArticleSelect={setSelectedArticle} setActiveTab={setActiveTab} />}
+            {activeTab === 'home' && <YahooStyleHome onArticleSelect={setSelectedArticle} setActiveTab={handleTabChange} />}
+            {activeTab === 'tracker' && <WTFWNPage setActiveTab={handleTabChange} />}
+            {activeTab === 'military' && <MilitaryDashboard onArticleSelect={setSelectedArticle} setActiveTab={handleTabChange} feed={SATIRE_HEADLINES} />}
+            {activeTab === 'conspiracy' && <ConspiracyPage onArticleSelect={setSelectedArticle} setActiveTab={handleTabChange} />}
             {activeTab === 'finance' && (
               <ErrorBoundary>
-                <FinancePage onArticleSelect={setSelectedArticle} setActiveTab={setActiveTab} />
+                <Suspense fallback={<div className="container mx-auto px-4 py-10 text-center text-slate-500"><RefreshCw className="animate-spin mx-auto mb-3" />Loading finance terminal...</div>}>
+                  <FinancePage onArticleSelect={setSelectedArticle} setActiveTab={handleTabChange} />
+                </Suspense>
               </ErrorBoundary>
             )}
-            {activeTab === 'shopping' && <ShoppingPage setActiveTab={setActiveTab} />}
-            {activeTab === 'satire' && <SatirePage feed={SATIRE_HEADLINES} onArticleSelect={setSelectedArticle} setActiveTab={setActiveTab} />}
-            {activeTab === 'horoscopes' && <HoroscopesPage setActiveTab={setActiveTab} />}
+            {activeTab === 'shopping' && <ShoppingPage setActiveTab={handleTabChange} />}
+            {activeTab === 'satire' && <SatirePage feed={SATIRE_HEADLINES} onArticleSelect={setSelectedArticle} setActiveTab={handleTabChange} />}
+            {activeTab === 'horoscopes' && <HoroscopesPage setActiveTab={handleTabChange} />}
             {activeTab === 'about' && <AboutPage />}
             {activeTab === 'privacy' && <PrivacyPage />}
             {activeTab === 'terms' && <TermsPage />}
@@ -1086,7 +1206,7 @@ const App = () => {
         )}
       </main>
 
-      {!selectedArticle && <Footer setActiveTab={setActiveTab} />}
+      {!selectedArticle && <Footer setActiveTab={handleTabChange} />}
       <PoliticalZoo />
     </div>
   );
