@@ -64,12 +64,51 @@ const FinancePage = lazy(() => import('./FinancePage'));
 
 // --- UTILS ---
 
-const getArticleImage = (item) => {
+const FALLBACK_CATEGORY_IMAGES = {
+  politics: [
+    'https://images.unsplash.com/photo-1540910419892-4a36d2c3266c?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1526470608268-f674ce90ebd4?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1590401037672-8f152d2ba126?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1555848962-6e79363ec58f?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1599839619722-39751411ea63?w=800&auto=format&fit=crop&q=60'
+  ],
+  defense: [
+    'https://images.unsplash.com/photo-1508215682490-6712bc9bfb08?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1510006851060-63ceba5b91be?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1444731961956-24df987e91eb?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1574288079093-ef203e05dcd2?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1544926526-981c20188b8e?w=800&auto=format&fit=crop&q=60'
+  ],
+  conspiracy: [
+    'https://images.unsplash.com/photo-1518972553140-5b5258957de7?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1620059880153-fbc0d98463c6?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1616128618694-96e9e896ceb7?w=800&auto=format&fit=crop&q=60'
+  ],
+  weird: [
+    'https://images.unsplash.com/photo-1541364983171-a8ba01e95cb2?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1518133835878-5a93cc3f89e5?w=800&auto=format&fit=crop&q=60'
+  ],
+  satire: [
+    'https://images.unsplash.com/photo-1497215848147-3a95d117a8e5?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1523995408711-2ebf49e1e2d4?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1516222338250-863216ce01ea?w=800&auto=format&fit=crop&q=60'
+  ]
+};
+
+const getArticleImage = (item, category) => {
   if (!item) return null;
   if (item.enclosure && item.enclosure.link) return item.enclosure.link;
   if (item.thumbnail) return item.thumbnail;
   const imgMatch = (item.description || item.content)?.match(/<img[^>]+src="([^"]+)"/);
   if (imgMatch) return imgMatch[1];
+  
+  if (category && FALLBACK_CATEGORY_IMAGES[category]) {
+    const arr = FALLBACK_CATEGORY_IMAGES[category];
+    const hash = item.title ? item.title.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : 0;
+    return arr[hash % arr.length];
+  }
+  
   return null;
 };
 
@@ -246,7 +285,7 @@ const NewsImage = ({ item, category, className, priority = false }) => {
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    const src = getArticleImage(item);
+    const src = getArticleImage(item, category);
     setError(false);
     setImgSrc(src || null);
     if (!src) {
@@ -652,21 +691,23 @@ const Footer = ({ setActiveTab }) => (
 
 const YahooStyleHome = ({ onArticleSelect, setActiveTab }) => {
   const [news, setNews] = useState(() => ({
-    politics: getFeedSnapshot('political', 6),
-    defense: getFeedSnapshot('defense', 4)
+    politics: getFeedSnapshot('political', 7),
+    defense: getFeedSnapshot('defense', 5),
+    conspiracy: getFeedSnapshot('conspiracy', 5)
   }));
 
   useEffect(() => {
     let cancelled = false;
 
     const fetchAll = async () => {
-      const [politics, defense] = await Promise.all([
-        fetchFeedItems('political', { limit: 6 }),
-        fetchFeedItems('defense', { limit: 4 })
+      const [politics, defense, conspiracy] = await Promise.all([
+        fetchFeedItems('political', { limit: 7 }),
+        fetchFeedItems('defense', { limit: 5 }),
+        fetchFeedItems('conspiracy', { limit: 5 })
       ]);
 
       if (!cancelled) {
-        setNews({ politics, defense });
+        setNews({ politics, defense, conspiracy });
       }
     };
 
@@ -698,52 +739,96 @@ const YahooStyleHome = ({ onArticleSelect, setActiveTab }) => {
           </div>
         </aside>
         <div className="flex-1 min-w-0">
-          {news.politics[0] && (
-            <div onClick={() => onArticleSelect(news.politics[0])} className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden mb-6 cursor-pointer group h-80 relative">
-              <div className="absolute inset-0">
-                <NewsImage item={news.politics[0]} category="politics" className="brightness-75 group-hover:brightness-50 transition-all" priority />
-              </div>
-              <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black via-black/70 to-transparent p-6 pt-20">
-                <span className="bg-blue-600 text-white text-[10px] font-bold px-2 py-1 rounded uppercase mb-2 inline-block">Top Story</span>
-                <h2 className="text-2xl md:text-4xl font-black text-white leading-tight group-hover:underline">{news.politics[0].title}</h2>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+            <div className="md:col-span-2 lg:col-span-3">
+              {news.politics[0] && (
+                <div onClick={() => onArticleSelect(news.politics[0])} className="bg-white rounded-lg shadow-sm border border-slate-200 overflow-hidden cursor-pointer group h-[28rem] relative">
+                  <div className="absolute inset-0">
+                    <NewsImage item={news.politics[0]} category="politics" className="brightness-75 group-hover:brightness-50 transition-all object-cover h-full w-full" priority />
+                  </div>
+                  <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-black via-black/80 to-transparent p-6 pt-24">
+                    <span className="bg-red-600 text-white text-[10px] font-bold px-3 py-1.5 rounded uppercase mb-3 inline-block shadow">Breaking News</span>
+                    <h2 className="text-3xl md:text-5xl font-black text-white leading-tight group-hover:underline drop-shadow-md">{news.politics[0].title}</h2>
+                    <p className="hidden md:block text-slate-200 mt-3 line-clamp-2 max-w-3xl drop-shadow text-lg">{news.politics[0].description.replace(/<[^>]*>?/gm, '')}</p>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
+          </div>
+          
           <TechKombatBanner />
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-              <h3 className="font-bold text-lg mb-3 flex items-center gap-2 pb-2 border-b border-slate-100"><Globe className="w-5 h-5 text-blue-600" /> Political Circus</h3>
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+              <h3 className="font-black text-xl text-slate-900 mb-4 flex items-center gap-2 pb-3 border-b border-slate-200"><Globe className="w-5 h-5 text-blue-600" /> Political Circus</h3>
               <div className="space-y-4">
-                {news.politics.slice(1, 5).map((item, i) => (
-                  <div key={i} onClick={() => onArticleSelect(item)} className="cursor-pointer group flex gap-3">
-                    <div className="w-20 h-16 flex-shrink-0 rounded overflow-hidden bg-slate-100"><NewsImage item={item} category="politics" /></div>
-                    <div><h4 className="font-bold text-sm text-slate-800 group-hover:text-blue-600 leading-snug mb-1 line-clamp-2">{item.title}</h4><p className="text-xs text-slate-400">2 hours ago</p></div>
+                {news.politics.slice(1, 4).map((item, i) => (
+                  <div key={i} onClick={() => onArticleSelect(item)} className="cursor-pointer group flex gap-4">
+                    <div className="w-24 h-20 flex-shrink-0 rounded overflow-hidden bg-slate-100 shadow-sm"><NewsImage item={item} category="politics" className="w-full h-full object-cover transition-transform group-hover:scale-105" /></div>
+                    <div><h4 className="font-bold text-[15px] text-slate-800 group-hover:text-blue-600 leading-snug mb-1.5 line-clamp-2">{item.title}</h4><p className="text-xs text-slate-500 font-medium">{item.pubDate ? new Date(item.pubDate).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '2 hours ago'}</p></div>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-              <h3 className="font-bold text-lg mb-3 flex items-center gap-2 pb-2 border-b border-slate-100"><ShieldAlert className="w-5 h-5 text-green-600" /> Global Conflict</h3>
+            
+            <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+              <h3 className="font-black text-xl text-slate-900 mb-4 flex items-center gap-2 pb-3 border-b border-slate-200"><ShieldAlert className="w-5 h-5 text-green-600" /> Global Conflict</h3>
               <div className="space-y-4">
-                {news.defense.map((item, i) => (
-                  <div key={i} onClick={() => onArticleSelect(item)} className="cursor-pointer group flex gap-3">
-                    <div className="w-20 h-16 flex-shrink-0 rounded overflow-hidden bg-slate-100"><NewsImage item={item} category="defense" /></div>
-                    <div><h4 className="font-bold text-sm text-slate-800 group-hover:text-green-600 leading-snug mb-1 line-clamp-2">{item.title}</h4><p className="text-xs text-slate-400">Military Ops</p></div>
+                {news.defense.slice(0, 3).map((item, i) => (
+                  <div key={i} onClick={() => onArticleSelect(item)} className="cursor-pointer group flex gap-4">
+                    <div className="w-24 h-20 flex-shrink-0 rounded overflow-hidden bg-slate-100 shadow-sm"><NewsImage item={item} category="defense" className="w-full h-full object-cover transition-transform group-hover:scale-105" /></div>
+                    <div><h4 className="font-bold text-[15px] text-slate-800 group-hover:text-green-600 leading-snug mb-1.5 line-clamp-2">{item.title}</h4><p className="text-xs text-slate-500 font-medium uppercase">{item.author || 'Military Ops'}</p></div>
                   </div>
                 ))}
               </div>
             </div>
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="bg-slate-900 rounded-lg shadow-xl border border-slate-700 p-5">
+              <h3 className="font-black text-xl text-white mb-4 flex items-center gap-2 pb-3 border-b border-slate-700"><Eye className="w-5 h-5 text-purple-400" /> The Truth Files</h3>
+              <div className="space-y-4">
+                {news.conspiracy.slice(0, 3).map((item, i) => (
+                  <div key={i} onClick={() => onArticleSelect(item)} className="cursor-pointer group flex gap-4 mix-blend-screen">
+                    <div className="w-24 h-20 flex-shrink-0 rounded overflow-hidden bg-slate-800"><NewsImage item={item} category="conspiracy" className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity filter sepia" /></div>
+                    <div><h4 className="font-bold text-[15px] text-slate-200 group-hover:text-purple-400 leading-snug mb-1.5 line-clamp-2 drop-shadow">{item.title}</h4><p className="text-xs text-purple-500 font-mono tracking-widest uppercase shadow-sm">Unverified</p></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-orange-50 rounded-lg shadow-sm border border-orange-200 p-5">
+              <h3 className="font-black text-xl text-amber-950 mb-4 flex items-center gap-2 pb-3 border-b border-orange-200"><MessageSquare className="w-5 h-5 text-orange-600" /> Satire Wire</h3>
+              <div className="space-y-4">
+                {SATIRE_HEADLINES.slice(0, 3).map((item, i) => (
+                  <div key={i} onClick={() => onArticleSelect(item)} className="cursor-pointer group flex gap-4">
+                    <div className="w-24 h-20 flex-shrink-0 rounded overflow-hidden bg-orange-100"><NewsImage item={item} category="satire" className="w-full h-full object-cover grayscale group-hover:grayscale-0 sepia opacity-80 transition-all" /></div>
+                    <div><h4 className="font-bold text-[15px] text-amber-950 group-hover:text-orange-700 leading-snug mb-1.5 line-clamp-2">{item.title}</h4><p className="text-xs text-amber-900 font-serif italic border border-orange-200 inline-block px-1 rounded bg-white">Parody Piece</p></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
         </div>
         <div className="w-full lg:w-80 flex-shrink-0 space-y-6">
           <VibeMarket />
-          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-4">
-            <h3 className="font-bold text-sm uppercase text-slate-900 mb-3">Trending Now</h3>
-            <ol className="list-decimal list-inside space-y-2 text-sm font-bold text-blue-600">
-              {['Aliens', 'Inflation', 'Florida Man', 'Cyber Trucks', 'The Moon', 'Avocados', 'AI Takeover', 'Cat Videos'].map((t, i) => (
-                <li key={i} className="hover:underline cursor-pointer"><span className="text-slate-800">{t}</span></li>
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
+            <h3 className="font-black text-lg uppercase text-slate-900 mb-4 border-b pb-3 tracking-wide">Trending Now</h3>
+            <ul className="space-y-4">
+              {['More Aliens', 'Inflation Act II', 'Florida Man Returns', 'Cyber Trucks Rusting', 'The Moon Landing Pt 2', 'Artificial Unintelligence'].map((t, i) => (
+                <li key={i} className="flex items-center gap-4 cursor-pointer group">
+                  <span className="text-2xl font-black text-slate-200 group-hover:text-blue-300 transition-colors">{i + 1}</span>
+                  <span className="text-sm font-bold text-slate-700 group-hover:text-blue-600 group-hover:underline">{t}</span>
+                </li>
               ))}
-            </ol>
+            </ul>
+          </div>
+          <div className="bg-slate-50 rounded-lg border border-slate-200 p-6 text-center">
+            <h4 className="font-black text-slate-900 mb-2 uppercase text-[15px] tracking-widest">Subscribe to Chaos</h4>
+            <p className="text-[13px] text-slate-500 mb-5 leading-relaxed">Get the best of the worst news delivered directly to your inbox daily.</p>
+            <input type="email" placeholder="Email address" className="w-full px-4 py-2 text-sm border border-slate-300 rounded mb-3 focus:outline-none focus:ring-2 focus:ring-slate-900" />
+            <button className="w-full bg-slate-900 text-white font-black py-3 px-4 rounded text-sm hover:bg-slate-800 transition-colors uppercase tracking-wider">Sign Up</button>
           </div>
         </div>
       </div>

@@ -11,3 +11,20 @@ Original prompt: finish this
   - `output/web-game/longflow/` shows round progression into match over and rematch.
   - `output/web-game/pause-overlay.png` confirms the pause overlay renders correctly.
 - Remaining note: the Playwright client only exposes arrows/enter/space, so human-only buttons like `z/x/c/p` were validated with a small deterministic Playwright script using the new `window.advanceTime` hook instead of the stock client payload map.
+
+- Current task: make Tech Kombat playable on a mobile device.
+- Added a touch-first mobile shell in `public/techkombat/index.html` with contextual top-bar actions (`START`, `READY`, `FIGHT`, `PAUSE`, `REMATCH`, `TITLE`, `FULL`) and gameplay buttons that respect safe-area insets.
+- Reworked mobile input in `public/techkombat/techkombat.js` so touch buttons use pointer events and per-key touch counts instead of a single boolean, which fixes duplicate-key conflicts like `DOWN` plus `BLK`.
+- Added direct mobile menu support by letting coarse-pointer users tap the title screen, fighter cards, and stage rows on the canvas instead of relying on keyboard-only confirmation.
+- Updated the in-game help text and HUD hints to describe the mobile controls when the touch UI is active.
+- Verified desktop regression with the stock web-game Playwright client:
+  - `output/web-game/mobile-regression/shot-0.png`
+  - `output/web-game/mobile-regression/state-0.json`
+- Verified an end-to-end phone-sized touch flow with a deterministic Playwright script:
+  - `output/mobile-touch/01-title.png`
+  - `output/mobile-touch/03-charselect-picked.png`
+  - `output/mobile-touch/05-stageselect-picked.png`
+  - `output/mobile-touch/07-fight-controls.png`
+  - `output/mobile-touch/08-paused.png`
+  - `output/mobile-touch/state-final.json`
+- Final mobile validation state: `state-final.json` shows a live `fight` on `metaverse`, `paused: false`, and both fighters taking action after touch input.

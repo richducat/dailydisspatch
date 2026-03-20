@@ -14,92 +14,165 @@
             box-sizing: border-box
         }
 
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+        }
+
         body {
             background: #000;
             overflow: hidden;
             font-family: 'Press Start 2P', cursive;
             user-select: none;
-            -webkit-user-select: none
+            -webkit-user-select: none;
+            touch-action: none;
+            overscroll-behavior: none
         }
 
         canvas {
             display: block;
             width: 100vw;
             height: 100vh;
+            height: 100dvh;
             image-rendering: pixelated
         }
 
         #mobile-controls {
             display: none;
             position: fixed;
-            bottom: 20px;
-            left: 0;
-            width: 100%;
+            inset: 0;
             z-index: 100;
-            padding: 0 20px;
+            padding: calc(12px + env(safe-area-inset-top)) 14px calc(18px + env(safe-area-inset-bottom));
+            flex-direction: column;
             justify-content: space-between;
             pointer-events: none
         }
 
+        .mobile-toolbar {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            pointer-events: none
+        }
+
+        .utility-btn,
+        .d-btn,
+        .a-btn {
+            appearance: none;
+            -webkit-appearance: none;
+            border: 0;
+            font-family: inherit;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none
+        }
+
+        .utility-btn {
+            min-width: 92px;
+            min-height: 42px;
+            padding: 0 12px;
+            border-radius: 999px;
+            background: rgba(10, 15, 25, 0.78);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-size: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28)
+        }
+
+        .utility-btn.is-hidden,
+        .mobile-gamepad.is-hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none
+        }
+
+        .utility-btn.is-primary {
+            background: rgba(241, 196, 15, 0.92);
+            color: #111;
+            border-color: rgba(255, 255, 255, 0.4)
+        }
+
+        .utility-btn.is-pressed,
+        .d-btn.is-pressed,
+        .a-btn.is-pressed {
+            transform: scale(0.96);
+            filter: brightness(1.2)
+        }
+
+        .mobile-gamepad {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            gap: 16px;
+            pointer-events: none;
+            transition: opacity 120ms ease
+        }
+
         .d-pad {
-            width: 130px;
-            height: 130px;
+            width: 144px;
+            height: 144px;
             position: relative;
             pointer-events: auto
         }
 
         .d-btn {
             position: absolute;
-            width: 42px;
-            height: 42px;
+            width: 46px;
+            height: 46px;
             background: rgba(255, 255, 255, 0.15);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 4px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             color: rgba(255, 255, 255, 0.5);
-            font-size: 16px
+            font-size: 16px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.24)
         }
 
         .d-up {
             top: 0;
-            left: 44px
+            left: 49px
         }
 
         .d-down {
             bottom: 0;
-            left: 44px
+            left: 49px
         }
 
         .d-left {
-            top: 44px;
+            top: 49px;
             left: 0
         }
 
         .d-right {
-            top: 44px;
+            top: 49px;
             right: 0
         }
 
         .act-btns {
             display: flex;
-            gap: 15px;
+            gap: 12px;
             align-items: flex-end;
-            padding-bottom: 15px;
+            padding-bottom: 10px;
             pointer-events: auto
         }
 
         .a-btn {
-            width: 60px;
-            height: 60px;
+            width: 66px;
+            height: 66px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 10px;
             color: #fff;
-            font-family: inherit
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25)
         }
 
         .btn-punch {
@@ -121,23 +194,72 @@
             background: rgba(241, 196, 15, 0.5);
             border: 2px solid #f1c40f
         }
+
+        @media (max-width: 430px) {
+            #mobile-controls {
+                padding-left: 10px;
+                padding-right: 10px
+            }
+
+            .utility-btn {
+                min-width: 82px;
+                font-size: 8px
+            }
+
+            .d-pad {
+                width: 128px;
+                height: 128px
+            }
+
+            .d-btn {
+                width: 42px;
+                height: 42px
+            }
+
+            .d-up,
+            .d-down {
+                left: 43px
+            }
+
+            .d-left,
+            .d-right {
+                top: 43px
+            }
+
+            .act-btns {
+                gap: 8px
+            }
+
+            .a-btn {
+                width: 58px;
+                height: 58px;
+                font-size: 9px
+            }
+        }
     </style>
 </head>
 
 <body>
     <canvas id="gc"></canvas>
     <div id="mobile-controls">
-        <div class="d-pad">
-            <div class="d-btn d-up" data-key="ArrowUp">▲</div>
-            <div class="d-btn d-down" data-key="ArrowDown">▼</div>
-            <div class="d-btn d-left" data-key="ArrowLeft">◀</div>
-            <div class="d-btn d-right" data-key="ArrowRight">▶</div>
+        <div class="mobile-toolbar">
+            <button type="button" class="utility-btn is-hidden" id="mobile-secondary" aria-label="Secondary mobile action"></button>
+            <button type="button" class="utility-btn is-primary is-hidden" id="mobile-primary" aria-label="Primary mobile action"></button>
+            <button type="button" class="utility-btn is-hidden" id="mobile-tertiary" aria-label="Tertiary mobile action"></button>
         </div>
-        <div class="act-btns">
-            <div class="a-btn btn-punch" data-key="z">ATK</div>
-            <div class="a-btn btn-kick" data-key="x">KCK</div>
-            <div class="a-btn btn-special" data-key="c">SPL</div>
-            <div class="a-btn btn-block" data-key="ArrowDown">BLK</div>
+        <div class="mobile-gamepad is-hidden" id="mobile-gamepad">
+            <div class="d-pad">
+                <button type="button" class="d-btn d-up" data-key="ArrowUp" aria-label="Jump">▲</button>
+                <button type="button" class="d-btn d-down" data-key="ArrowDown" aria-label="Crouch or block">▼</button>
+                <button type="button" class="d-btn d-left" data-key="ArrowLeft" aria-label="Move left">◀</button>
+                <button type="button" class="d-btn d-right" data-key="ArrowRight" aria-label="Move right">▶</button>
+            </div>
+            <div class="act-btns">
+                <button type="button" class="a-btn btn-punch" data-key="z" aria-label="Attack">ATK</button>
+                <button type="button" class="a-btn btn-kick" data-key="x" aria-label="Kick">KCK</button>
+                <button type="button" class="a-btn btn-special" data-key="c" aria-label="Special">SPL</button>
+                <button type="button" class="a-btn btn-block" data-key="ArrowDown" aria-label="Block">BLK</button>
+            </div>
         </div>
     </div>
     <script src="techkombat.js"></script>

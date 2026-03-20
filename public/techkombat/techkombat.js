@@ -7,10 +7,17 @@ const GROUND_Y = H - 180;
 const ARENA_MARGIN = 20;
 const FRAME_MS = 1000 / 60;
 const mobileControls = document.getElementById('mobile-controls');
+const mobileGamepad = document.getElementById('mobile-gamepad');
+const mobilePrimaryButton = document.getElementById('mobile-primary');
+const mobileSecondaryButton = document.getElementById('mobile-secondary');
+const mobileTertiaryButton = document.getElementById('mobile-tertiary');
+const hasCoarsePointer = typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches;
+const hasTouchSupport = navigator.maxTouchPoints > 0 || 'ontouchstart' in window;
+const mobileUiEnabled = !!mobileControls && (hasCoarsePointer || hasTouchSupport);
 
 C.width = W;
 C.height = H;
-if ('ontouchstart' in window && mobileControls) mobileControls.style.display = 'flex';
+if (mobileUiEnabled) mobileControls.style.display = 'flex';
 
 const CONTROL_KEYS = new Set([
     'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
@@ -90,6 +97,19 @@ function snd(t) {
 // Input
 const keys = {};
 const keyEdges = {};
+const keyboardKeys = {};
+const touchKeyCounts = {};
+
+function setComputedKeyState(key, down) {
+    keys[key] = down;
+    if (key === ' ') keys.Space = down;
+}
+
+function syncKeyState(rawKey) {
+    const key = normalizeKey(rawKey);
+    const down = !!keyboardKeys[key] || (touchKeyCounts[key] || 0) > 0;
+    setComputedKeyState(key, down);
+}
 
 function normalizeKey(input) {
     if (typeof input === 'string') return input === 'Space' ? ' ' : input;
@@ -98,17 +118,49 @@ function normalizeKey(input) {
 
 function setKeyState(rawKey, down) {
     const key = normalizeKey(rawKey);
-    keys[key] = down;
-    if (key === ' ') keys.Space = down;
+    keyboardKeys[key] = down;
+    syncKeyState(key);
+}
+
+function setTouchKeyState(rawKey, down) {
+    const key = normalizeKey(rawKey);
+    const count = touchKeyCounts[key] || 0;
+    const next = down ? count + 1 : Math.max(0, count - 1);
+    touchKeyCounts[key] = next;
+    syncKeyState(key);
 }
 
 function clearKeyState(key) {
     const normalized = normalizeKey(key);
-    keys[normalized] = false;
+    keyboardKeys[normalized] = false;
+    touchKeyCounts[normalized] = 0;
+    setComputedKeyState(normalized, false);
     keyEdges[normalized] = false;
     if (normalized === ' ') {
+        keyboardKeys.Space = false;
+        touchKeyCounts.Space = 0;
         keys.Space = false;
         keyEdges.Space = false;
+    }
+}
+
+function resetAllInputs() {
+    Object.keys(keys).forEach((key) => {
+        keys[key] = false;
+    });
+    Object.keys(keyEdges).forEach((key) => {
+        keyEdges[key] = false;
+    });
+    Object.keys(keyboardKeys).forEach((key) => {
+        keyboardKeys[key] = false;
+    });
+    Object.keys(touchKeyCounts).forEach((key) => {
+        touchKeyCounts[key] = 0;
+    });
+    if (mobileControls) {
+        mobileControls.querySelectorAll('.is-pressed').forEach((btn) => {
+            btn.classList.remove('is-pressed');
+        });
     }
 }
 
@@ -149,28 +201,57 @@ window.addEventListener('keyup', (e) => {
 });
 
 window.addEventListener('blur', () => {
-    Object.keys(keys).forEach((key) => {
-        keys[key] = false;
-    });
-    Object.keys(keyEdges).forEach((key) => {
-        keyEdges[key] = false;
-    });
+    resetAllInputs();
 });
 
-if (mobileControls) {
-    document.querySelectorAll('[data-key]').forEach((btn) => {
-        const press = (e) => {
-            e.preventDefault();
-            setKeyState(btn.dataset.key, true);
-        };
-        const release = (e) => {
-            e.preventDefault();
-            setKeyState(btn.dataset.key, false);
-        };
-        btn.addEventListener('touchstart', press, { passive: false });
-        btn.addEventListener('touchend', release, { passive: false });
-        btn.addEventListener('touchcancel', release, { passive: false });
+function setButtonPressed(btn, pressed) {
+    if (!btn) return;
+    btn.classList.toggle('is-pressed', pressed);
+}
+
+function bindMobileKeyButton(btn) {
+    if (!btn || !btn.dataset.key) return;
+    const activePointers = new Set();
+    const press = (pointerId) => {
+        if (activePointers.has(pointerId)) return;
+        activePointers.add(pointerId);
+        setTouchKeyState(btn.dataset.key, true);
+        setButtonPressed(btn, true);
+    };
+    const release = (pointerId) => {
+        if (!activePointers.has(pointerId)) return;
+        activePointers.delete(pointerId);
+        setTouchKeyState(btn.dataset.key, false);
+        if (!activePointers.size) setButtonPressed(btn, false);
+    };
+
+    btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        if (btn.setPointerCapture) {
+            try {
+                btn.setPointerCapture(e.pointerId);
+            } catch (_) {
+                // Synthetic tests may not register an active pointer for capture.
+            }
+        }
+        press(e.pointerId);
     });
+    btn.addEventListener('pointerup', (e) => {
+        e.preventDefault();
+        release(e.pointerId);
+    });
+    btn.addEventListener('pointercancel', (e) => {
+        e.preventDefault();
+        release(e.pointerId);
+    });
+    btn.addEventListener('pointerleave', (e) => {
+        if (e.buttons === 0) release(e.pointerId);
+    });
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+
+if (mobileControls) {
+    document.querySelectorAll('#mobile-controls [data-key]').forEach(bindMobileKeyButton);
 }
 
 // Roster
@@ -249,6 +330,254 @@ let gameTime = 0;
 let freezeTimer = 0;
 let rafId = 0;
 let manualMode = false;
+let mobileUiSignature = '';
+
+function isMenuState() {
+    return state === 'title' || state === 'charselect' || state === 'stageselect';
+}
+
+function isGameplayState() {
+    return state === 'roundstart' || state === 'fight' || state === 'ko';
+}
+
+function startFromTitle() {
+    state = 'charselect';
+    selP1 = 0;
+    snd('fight');
+}
+
+function togglePause() {
+    if (state === 'fight' || state === 'matchover') {
+        paused = !paused;
+        snd('select');
+    }
+}
+
+function confirmMobileAction() {
+    if (state === 'title') {
+        startFromTitle();
+    } else if (state === 'charselect') {
+        state = 'stageselect';
+        selStage = 0;
+        snd('fight');
+    } else if (state === 'stageselect') {
+        startMatch();
+    } else if (state === 'fight' && paused) {
+        togglePause();
+    } else if (state === 'matchover' && announceTimer <= 0 && !paused) {
+        startMatch();
+    }
+}
+
+function performMobileAction(action) {
+    if (!action) return;
+    if (action === 'start') startFromTitle();
+    else if (action === 'confirm') confirmMobileAction();
+    else if (action === 'title') {
+        if (state !== 'title') {
+            returnToTitle();
+            snd('select');
+        }
+    } else if (action === 'pause') togglePause();
+    else if (action === 'fullscreen') toggleFullscreen();
+    syncMobileUi();
+}
+
+function getCharSelectLayout() {
+    const cols = 3;
+    const cw = 120;
+    const ch = 140;
+    const gap = 20;
+    const ox = (W - (cols * (cw + gap) - gap)) / 2;
+    const oy = 80;
+    return { cols, cw, ch, gap, ox, oy };
+}
+
+function getCanvasPoint(clientX, clientY) {
+    const rect = C.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    return {
+        x: ((clientX - rect.left) / rect.width) * W,
+        y: ((clientY - rect.top) / rect.height) * H
+    };
+}
+
+function pickCharacterAtPoint(point) {
+    if (!point) return -1;
+    const { cols, cw, ch, gap, ox, oy } = getCharSelectLayout();
+    for (let i = 0; i < ROSTER.length; i++) {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        const cx = ox + col * (cw + gap);
+        const cy = oy + row * (ch + gap);
+        if (point.x >= cx && point.x <= cx + cw && point.y >= cy && point.y <= cy + ch) return i;
+    }
+    return -1;
+}
+
+function pickStageAtPoint(point) {
+    if (!point) return -1;
+    for (let i = 0; i < STAGES.length; i++) {
+        const y = 90 + i * 90;
+        if (point.x >= 200 && point.x <= W - 200 && point.y >= y && point.y <= y + 70) return i;
+    }
+    return -1;
+}
+
+function handleMobileCanvasPointer(e) {
+    if (!mobileUiEnabled || !isMenuState()) return;
+    const point = getCanvasPoint(e.clientX, e.clientY);
+    if (!point) return;
+
+    if (state === 'title') {
+        e.preventDefault();
+        startFromTitle();
+        syncMobileUi();
+        return;
+    }
+
+    if (state === 'charselect') {
+        const picked = pickCharacterAtPoint(point);
+        if (picked === -1) return;
+        e.preventDefault();
+        if (selP1 === picked) confirmMobileAction();
+        else {
+            selP1 = picked;
+            snd('select');
+        }
+        syncMobileUi();
+        return;
+    }
+
+    if (state === 'stageselect') {
+        const picked = pickStageAtPoint(point);
+        if (picked === -1) return;
+        e.preventDefault();
+        if (selStage === picked) confirmMobileAction();
+        else {
+            selStage = picked;
+            snd('select');
+        }
+        syncMobileUi();
+    }
+}
+
+function configureMobileActionButton(btn, config) {
+    if (!btn) return;
+    if (!config) {
+        btn.textContent = '';
+        btn.dataset.action = '';
+        setButtonPressed(btn, false);
+        btn.classList.add('is-hidden');
+        return;
+    }
+    btn.textContent = config.label;
+    btn.dataset.action = config.action;
+    btn.classList.remove('is-hidden');
+}
+
+function getMobileUiConfig() {
+    if (!mobileUiEnabled) return { secondary: null, primary: null, tertiary: null, showGamepad: false };
+
+    if (state === 'title') {
+        return {
+            secondary: null,
+            primary: { label: 'START', action: 'start' },
+            tertiary: { label: 'FULL', action: 'fullscreen' },
+            showGamepad: false
+        };
+    }
+
+    if (state === 'charselect') {
+        return {
+            secondary: { label: 'TITLE', action: 'title' },
+            primary: { label: 'READY', action: 'confirm' },
+            tertiary: null,
+            showGamepad: false
+        };
+    }
+
+    if (state === 'stageselect') {
+        return {
+            secondary: { label: 'TITLE', action: 'title' },
+            primary: { label: 'FIGHT', action: 'confirm' },
+            tertiary: null,
+            showGamepad: false
+        };
+    }
+
+    if (state === 'matchover') {
+        return {
+            secondary: { label: 'TITLE', action: 'title' },
+            primary: announceTimer <= 0 && !paused ? { label: 'REMATCH', action: 'confirm' } : null,
+            tertiary: { label: 'FULL', action: 'fullscreen' },
+            showGamepad: false
+        };
+    }
+
+    if (state === 'roundstart' || state === 'ko') {
+        return {
+            secondary: { label: 'TITLE', action: 'title' },
+            primary: null,
+            tertiary: { label: 'FULL', action: 'fullscreen' },
+            showGamepad: true
+        };
+    }
+
+    return {
+        secondary: { label: 'TITLE', action: 'title' },
+        primary: state === 'fight' && paused ? { label: 'RESUME', action: 'pause' } : { label: 'PAUSE', action: 'pause' },
+        tertiary: { label: 'FULL', action: 'fullscreen' },
+        showGamepad: isGameplayState() && !paused
+    };
+}
+
+function syncMobileUi() {
+    if (!mobileUiEnabled) return;
+    const config = getMobileUiConfig();
+    const nextSignature = JSON.stringify(config);
+    if (nextSignature === mobileUiSignature) return;
+    mobileUiSignature = nextSignature;
+
+    configureMobileActionButton(mobileSecondaryButton, config.secondary);
+    configureMobileActionButton(mobilePrimaryButton, config.primary);
+    configureMobileActionButton(mobileTertiaryButton, config.tertiary);
+    if (mobileGamepad) mobileGamepad.classList.toggle('is-hidden', !config.showGamepad);
+}
+
+function bindMobileActionButton(btn) {
+    if (!btn) return;
+    btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        if (btn.setPointerCapture) {
+            try {
+                btn.setPointerCapture(e.pointerId);
+            } catch (_) {
+                // Synthetic tests may not register an active pointer for capture.
+            }
+        }
+        setButtonPressed(btn, true);
+    });
+    btn.addEventListener('pointerup', (e) => {
+        e.preventDefault();
+        setButtonPressed(btn, false);
+        performMobileAction(btn.dataset.action);
+    });
+    btn.addEventListener('pointercancel', (e) => {
+        e.preventDefault();
+        setButtonPressed(btn, false);
+    });
+    btn.addEventListener('pointerleave', () => {
+        setButtonPressed(btn, false);
+    });
+    btn.addEventListener('contextmenu', (e) => e.preventDefault());
+}
+
+if (mobileUiEnabled) {
+    [mobilePrimaryButton, mobileSecondaryButton, mobileTertiaryButton].forEach(bindMobileActionButton);
+    C.addEventListener('pointerdown', handleMobileCanvasPointer, { passive: false });
+    syncMobileUi();
+}
 
 // Fighter class
 function makeFighter(data, x, faceR) {
@@ -512,8 +841,8 @@ function returnToTitle() {
     particles = [];
     p1 = null;
     p2 = null;
-    clearKeyState('Enter');
-    clearKeyState(' ');
+    resetAllInputs();
+    syncMobileUi();
 }
 
 function drawStage(st) {
@@ -698,7 +1027,11 @@ function drawHUD() {
     X.textAlign = 'center';
     X.font = '7px "Press Start 2P"';
     X.fillStyle = '#7f8c8d';
-    X.fillText('P PAUSE  F FULLSCREEN  ESC TITLE', W / 2, H - 16);
+    X.fillText(
+        mobileUiEnabled ? 'TOP BAR: TITLE  PAUSE  FULL' : 'P PAUSE  F FULLSCREEN  ESC TITLE',
+        W / 2,
+        mobileUiEnabled ? H - 98 : H - 16
+    );
     X.textAlign = 'left';
 }
 
@@ -1078,13 +1411,21 @@ function drawTitle() {
     if (Math.sin(titleFlash) > 0) {
         X.font = '14px "Press Start 2P"';
         X.fillStyle = '#fff';
-        X.fillText('PRESS ENTER TO START', W / 2, 368);
+        X.fillText(mobileUiEnabled ? 'TAP START TO BRAWL' : 'PRESS ENTER TO START', W / 2, 368);
     }
 
     X.font = '10px "Press Start 2P"';
     X.fillStyle = '#888';
-    X.fillText('Z=PUNCH  X=KICK  C=SPECIAL  DOWN=BLOCK', W / 2, 424);
-    X.fillText('ARROWS=MOVE  UP=JUMP  P=PAUSE  F=FULLSCREEN', W / 2, 452);
+    X.fillText(
+        mobileUiEnabled ? 'TOUCH PADS: MOVE  JUMP  ATTACK  SPECIAL' : 'Z=PUNCH  X=KICK  C=SPECIAL  DOWN=BLOCK',
+        W / 2,
+        424
+    );
+    X.fillText(
+        mobileUiEnabled ? 'TOP BUTTONS: START  TITLE  PAUSE  FULL' : 'ARROWS=MOVE  UP=JUMP  P=PAUSE  F=FULLSCREEN',
+        W / 2,
+        452
+    );
     X.fillStyle = '#e74c3c';
     X.globalAlpha = 0.15;
     X.font = '200px serif';
@@ -1093,9 +1434,7 @@ function drawTitle() {
     X.textAlign = 'left';
 
     if (confirmPressed()) {
-        state = 'charselect';
-        selP1 = 0;
-        snd('fight');
+        startFromTitle();
     }
 }
 
@@ -1160,7 +1499,11 @@ function drawCharSelect() {
     );
     X.textAlign = 'center';
     X.fillStyle = '#aaa';
-    X.fillText('ARROWS SELECT   ENTER TO CONTINUE   ESC TO TITLE', W / 2, H - 15);
+    X.fillText(
+        mobileUiEnabled ? 'TAP A FIGHTER OR USE D-PAD, THEN READY' : 'ARROWS SELECT   ENTER TO CONTINUE   ESC TO TITLE',
+        W / 2,
+        H - 15
+    );
     X.textAlign = 'left';
 
     if (pressedOnce('ArrowRight')) {
@@ -1180,9 +1523,7 @@ function drawCharSelect() {
         snd('select');
     }
     if (confirmPressed()) {
-        state = 'stageselect';
-        selStage = 0;
-        snd('fight');
+        confirmMobileAction();
     }
 }
 
@@ -1219,7 +1560,11 @@ function drawStageSelect() {
 
     X.font = '10px "Press Start 2P"';
     X.fillStyle = '#aaa';
-    X.fillText('UP DOWN SELECT   ENTER TO FIGHT   ESC TO TITLE', W / 2, H - 20);
+    X.fillText(
+        mobileUiEnabled ? 'TAP AN ARENA OR USE D-PAD, THEN FIGHT' : 'UP DOWN SELECT   ENTER TO FIGHT   ESC TO TITLE',
+        W / 2,
+        H - 20
+    );
 
     if (pressedOnce('ArrowDown')) {
         selStage = (selStage + 1) % STAGES.length;
@@ -1229,7 +1574,7 @@ function drawStageSelect() {
         selStage = (selStage - 1 + STAGES.length) % STAGES.length;
         snd('select');
     }
-    if (confirmPressed()) startMatch();
+    if (confirmPressed()) confirmMobileAction();
 }
 
 function startMatch() {
@@ -1332,9 +1677,8 @@ function handleMatchFlow() {
 }
 
 function handleGlobalHotkeys() {
-    if ((state === 'fight' || state === 'matchover') && pressedOnce('p')) {
-        paused = !paused;
-        snd('select');
+    if ((state === 'fight' || state === 'matchover') && (pressedOnce('p') || pressedOnce('P'))) {
+        togglePause();
     }
     if (state !== 'title' && !document.fullscreenElement && pressedOnce('Escape')) {
         returnToTitle();
@@ -1374,6 +1718,7 @@ function stepFrame() {
         handleMatchFlow();
         drawArena();
     }
+    syncMobileUi();
 }
 
 function scheduleNextFrame() {
