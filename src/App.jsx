@@ -57,7 +57,8 @@ import {
   Map,
   Activity,
   Info,
-  Shield
+  Shield,
+  Clock
 } from 'lucide-react';
 
 const FinancePage = lazy(() => import('./FinancePage'));
@@ -125,126 +126,125 @@ const getHostname = (link) => {
 // --- MOCK DATA ---
 
 const GENERATED_ADVERSARIES = [
-  { name: 'The Federal Reserve', reason: 'Interest rates exist', status: 'Critical', icon: '💸', reaction: 'Printing money in panic' },
-  { name: 'Windmills', reason: "They're killing the birds, very sad", status: 'Ongoing', icon: '🌬️', reaction: 'Spinning menacingly' },
-  { name: 'NATO', reason: "Didn't pay the lunch bill", status: 'Elevated', icon: '🛡️', reaction: 'Holding an emergency meeting' },
-  { name: 'The Ocean', reason: 'Too wet, very un-American', status: 'Mild', icon: '🌊', reaction: 'Waving back' },
-  { name: 'Mars', reason: "Hasn't been colonized yet. Low energy.", status: 'Watching', icon: '🪐', reaction: 'Being red' },
-  { name: 'Standard Time', reason: 'Daylight Savings is for winners', status: 'Heated', icon: '⏰', reaction: 'Ticking loudly' }
+  { name: 'The Algorithm', reason: 'Refuses to show my posts', status: 'God Tier', icon: '🤖', reaction: 'Serving more ads' },
+  { name: 'HOA Presidents', reason: 'Grass was 0.1 inches too high', status: 'Tyrannical', icon: '📏', reaction: 'Drafting a fine' },
+  { name: 'Billionaire Space Races', reason: 'Earth is boring now', status: 'Orbiting', icon: '🚀', reaction: 'Ignoring taxes' },
+  { name: 'Streaming Service Prices', reason: 'Adding another $2 fee for no reason', status: 'Hostile', icon: '📺', reaction: 'Canceling your favorite show' },
+  { name: 'Self-Checkout Machines', reason: 'Unexpected item in bagging area', status: 'Judgemental', icon: '🛒', reaction: 'Flashing red lights' },
+  { name: 'Standard Time', reason: 'Dark at 4 PM', status: 'Depressing', icon: '⏰', reaction: 'Making you tired' }
 ];
 
 const SATIRE_HEADLINES = [
   {
     id: 1,
-    title: "US Navy conducts 'Freedom of Navigation' drill in a puddle, claims it's international waters",
-    category: 'Military',
-    severity: 'low',
-    description:
-      "Admiral Nelson stated that the puddle was 'clearly navigable' by a toy boat and thus subject to maritime law. China has issued a strong condemnation of the splash damage.",
+    title: "AI Startup Promises to Disrupt Disruption, Secures $4B at 'Vibes-Based' Valuation",
+    category: 'Technology',
+    severity: 'high',
+    description: "The founders admit they don't have a product yet, but they have a really cool logo and a ping-pong table. Investors say they are 'thrilled'.",
     link: '#'
   },
   {
     id: 2,
-    title: "Congress votes to rename 'French Fries' to 'Freedom Taters' again",
+    title: "Politician Bravely Takes Stance Unanimously Supported by Donors",
     category: 'Political',
     severity: 'medium',
-    description:
-      'In a bipartisan effort to waste time, the House has passed a bill declaring that potatoes are now patriotic citizens. France declined to comment, mostly because they are busy eating better food.',
+    description: "In a stunning display of courage, the senator announced full support for the exact thing written on the back of a very large check.",
     link: '#'
   },
   {
     id: 3,
-    title: "Pentagon budget increases by $800 billion to develop 'invisibility cloaks' for tanks",
-    category: 'Military',
-    severity: 'high',
-    description:
-      "The project, codenamed 'Where's Waldo', aims to hide 60-ton vehicles using a series of mirrors and smoke machines. Critics argue you can still hear the tank engine from 3 miles away.",
+    title: "Local Man Discovers 14th Subscription Service He Forgot to Cancel",
+    category: 'Economy',
+    severity: 'low',
+    description: "He hasn't watched 'Quibi' in years, but $8.99 has been quietly vanishing from his account every month to fund a server in an empty warehouse.",
     link: '#'
   },
   {
     id: 4,
-    title: 'Diplomatic cables reveal the Ambassador to France just really wanted a croissant',
-    category: 'Diplomacy',
-    severity: 'low',
-    description:
-      "Leaked memos show 400 pages of correspondence requesting 'the buttery flaky ones' and zero mention of nuclear treaties. The State Department calls it 'strategic gastronomy'.",
+    title: "Stock Market Plummets Because CEO Looked 'Kinda Tired' on Earnings Call",
+    category: 'Finance',
+    severity: 'high',
+    description: "Analysts downgraded the stock entirely because the CEO sighed heavily before sipping water. Trillions erased from global economy.",
     link: '#'
   },
   {
     id: 5,
-    title: "Space Force officially adopts 'Pew Pew' as official motto",
-    category: 'Military',
+    title: "New Smart Fridge Refuses to Open Until You Apologize to It",
+    category: 'Technology',
     severity: 'medium',
-    description: 'General Spacey announced the change after a Twitter poll. The uniform will now include mandatory laser pointers and capes.',
+    description: "The appliance demands emotional intelligence before dispensing ice. User manuals say 'just tell it you appreciate its cooling efforts.'",
     link: '#'
   },
   {
     id: 6,
-    title: 'Trade War update: Avocados are now contraband, Millennial toast market crashes',
-    category: 'Economy',
+    title: "Corporate 'Mental Health Day' Mandatory, Features 4 Hours of Trust Falls",
+    category: 'Business',
     severity: 'high',
-    description:
-      'Customs agents seized 4 million tons of guacamole at the border. Brunch prices in Brooklyn have skyrocketed to $45 per slice.',
+    description: "Employees report feeling substantially more stressed after being forced to catch Steve from Accounting while instrumental acoustic pop plays.",
     link: '#'
   }
 ];
 
 const POLL_OPTIONS = [
-  { text: 'Panic immediately', votes: 45 },
-  { text: 'Blame the other party', votes: 82 },
-  { text: 'Tweet about it', votes: 12 },
+  { text: 'Blame the algorithm', votes: 45 },
+  { text: 'Pretend I understand', votes: 82 },
+  { text: 'Threaten to move to Canada', votes: 12 },
   { text: 'Just go back to sleep', votes: 99 }
 ];
 
 const RANT_TEMPLATES = [
-  'Total disaster! {target} is treating us very badly. Unfair! Sad!',
-  "Many people are saying {target} is a loser. I don't know, but that's what they say!",
-  'If I were in charge of {target}, it would be huge. Currently? Tiny. Very small.',
-  'We are looking into {target} very strongly. Powerful investigation!',
-  'Why does {target} hate freedom? We love freedom. We have the best freedom.'
+  'Absolutely unacceptable! {target} is ruining everything. Sad!',
+  "Nobody wants to talk about {target}, but I will. It's a disaster!",
+  "Back in my day, we didn't have to deal with {target}. Now it's everywhere. Pathetic!",
+  'If I see one more post about {target}, I am deleting the internet.',
+  'Why is {target} always trying to ruin my weekend? Enough is enough.'
 ];
 
 const VEGAS_ODDS = [
-  { name: 'The Metric System', odds: '+150', trend: 'up' },
-  { name: 'Vegetables', odds: '+300', trend: 'steady' },
-  { name: 'Clouds', odds: '+500', trend: 'down' },
-  { name: 'TikTok Teens', odds: '+1000', trend: 'up' },
-  { name: 'Shark Attacks', odds: '+2500', trend: 'steady' }
+  { name: 'AI Taking Your Job', odds: '+150', trend: 'up' },
+  { name: 'Peace & Quiet', odds: '+1000', trend: 'down' },
+  { name: 'Crypto Rebranding Again', odds: '-500', trend: 'steady' },
+  { name: 'Politicians Agreeing', odds: '+50000', trend: 'down' },
+  { name: 'Avocado Toast Prices', odds: '+200', trend: 'up' }
 ];
 
 const HOROSCOPES = [
-  { sign: 'Aries', text: 'You will start a fight with a vending machine today. The machine will win.' },
-  { sign: 'Taurus', text: 'Avoid making eye contact with squirrels. They know what you did.' },
-  { sign: 'Gemini', text: 'Today is a great day to start a rumor about yourself just to feel something.' },
-  { sign: 'Cancer', text: 'You will cry during a commercial for car insurance. Embrace it.' },
-  { sign: 'Leo', text: 'Your hair looks fantastic, but everyone is actually looking at the spinach in your teeth.' },
-  { sign: 'Virgo', text: "Organizing your desktop icons won't fix your life, but you'll try anyway." },
-  { sign: 'Libra', text: 'Indecision will strike when choosing lunch. You will starve until dinner.' },
-  { sign: 'Scorpio', text: "Revenge is a dish best served cold, but you're too impatient. Microwaved revenge it is." },
-  { sign: 'Sagittarius', text: 'You will feel an urge to travel. Your bank account will respectfully disagree.' },
-  { sign: 'Capricorn', text: 'Work harder. The simulation demands productivity.' },
-  { sign: 'Aquarius', text: "Your unique ideas are valid, but maybe keep the one about 'hamster-powered cars' to yourself." },
-  { sign: 'Pisces', text: 'You will dissociate during a Zoom meeting and agree to lead a project by accident.' }
+  { sign: 'Aries', text: 'You will confidently explain something you know nothing about today. Everyone will believe you.' },
+  { sign: 'Taurus', text: 'Your stubbornness will save you from a multi-level marketing scheme.' },
+  { sign: 'Gemini', text: 'Both of your personalities will agree that ordering takeout is cheaper than therapy.' },
+  { sign: 'Cancer', text: 'You will interpret a completely neutral email as a direct insult. Reply cautiously.' },
+  { sign: 'Leo', text: 'You look incredible today. Too bad the only person who will see you is the delivery driver.' },
+  { sign: 'Virgo', text: "You will spend 45 minutes formatting a spreadsheet that nobody will ever open." },
+  { sign: 'Libra', text: 'Your inability to choose a movie will result in 3 hours of scrolling Netflix trailers.' },
+  { sign: 'Scorpio', text: "You will hold a grudge against a stranger who walked slightly too slow in front of you." },
+  { sign: 'Sagittarius', text: 'You will research moving to a remote island, then realize there is no Wi-Fi.' },
+  { sign: 'Capricorn', text: 'You will experience an irrational burst of productivity at 11:43 PM.' },
+  { sign: 'Aquarius', text: "Your hot take will drop perfectly into the group chat, but no one will respond." },
+  { sign: 'Pisces', text: 'You will empathize so hard with a fictional character you forget to pay your electric bill.' }
 ];
 
 const CONSPIRACY_PRODUCTS = [
-  { name: 'BRAIN FORCE ULTRA', desc: 'Now with 50% more rage.', price: '$59.99' },
-  { name: 'Tactical Wipes', desc: 'For when the grid goes down.', price: '$29.99' },
-  { name: 'Male Vitality Bone Broth', desc: 'Made from real dinosaur bones.', price: '$89.99' },
-  { name: 'Tinfoil Beanie (Heavy Duty)', desc: 'Blocks 6G waves.', price: '$15.00' }
+  { name: 'Algorithmic Cleanse Tea', desc: 'Flushes tracking cookies from your soul.', price: '$49.99' },
+  { name: 'Faraday Cage Bed Sheets', desc: 'Sleep without 5G interrupting your dreams.', price: '$129.99' },
+  { name: 'Billionaire Tears Vapors', desc: 'Sourced directly from yacht inconveniences.', price: '$89.99' },
+  { name: 'Anti-Zoom Filter', desc: 'Automatically makes you look like you are paying attention.', price: '$15.00/mo' }
 ];
 
 const SATIRE_TEMPLATES = {
-  openers: ['In a move that surprised absolutely no one,', 'Sources close to the situation,', 'It has come to our attention that reality is glitching again, as'],
+  openers: [
+    'In a move that completely baffled experts but made perfect sense to your uncle,', 
+    'Following a rigorous 4-minute Google search,', 
+    'In an unprecedented display of corporate synergy,'
+  ],
   middles: [
-    "Experts believe this is basically just a fancy way of saying 'oops'.",
-    'The Pentagon has not confirmed if aliens are involved.',
-    'This will likely result in a 3-hour committee meeting.'
+    "Analysts believe this is essentially a very expensive mistake masquerading as innovation.",
+    'A spokesperson frantically clarified that it was intended as a feature, not a bug.',
+    'Everyone involved firmly agreed to blame the intern.'
   ],
   closers: [
-    'We recommend panicking slightly, then taking a nap.',
-    "History will remember this moment as 'that Tuesday when things got weird'.",
-    'The stock market reacted by doing absolutely nothing.'
+    'We suggest turning it off and turning it back on again.',
+    "Society is expected to collapse shortly after lunch.",
+    'The market responded by doing absolutely nothing, as usual.'
   ]
 };
 
@@ -689,6 +689,51 @@ const Footer = ({ setActiveTab }) => (
 
 // --- PAGES ---
 
+const NativeAd = ({ title, sponsor, category, description }) => {
+  return (
+    <div className="bg-slate-50 rounded-lg shadow-sm border border-slate-200 overflow-hidden cursor-pointer group flex flex-col relative transition-all hover:bg-slate-100 hover:shadow-md">
+      <div className="absolute top-2 right-2 bg-yellow-400 text-yellow-900 text-[9px] font-black px-2 py-0.5 rounded shadow uppercase z-10 w-fit">Sponsored</div>
+      <div className="h-36 w-full bg-slate-200 relative overflow-hidden mb-3">
+        <NewsImage item={{ title }} category={category || 'finance'} className="w-full h-full object-cover filter brightness-95 group-hover:scale-105 transition-transform" />
+      </div>
+      <div className="px-4 pb-4 flex flex-col flex-1">
+        <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-2 flex items-center gap-1"><ExternalLink className="w-3 h-3" /> {sponsor}</span>
+        <h4 className="font-bold text-[14px] text-slate-900 leading-snug mb-2 group-hover:text-blue-700">{title}</h4>
+        <p className="text-xs text-slate-600 mt-auto line-clamp-2">{description || 'Click to learn more and see why millions are making the switch today.'}</p>
+      </div>
+    </div>
+  );
+};
+
+const PartnerOffers = () => (
+  <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-lg shadow-xl border border-slate-700 p-5 mt-6 mb-6">
+    <h3 className="font-black text-[15px] uppercase text-yellow-400 mb-4 border-b border-slate-700 pb-3 tracking-wide flex items-center gap-2"><DollarSign className="w-5 h-5"/> Featured Partners</h3>
+    <div className="space-y-4">
+      <div className="bg-slate-800 p-4 rounded border border-slate-600 hover:border-yellow-500 hover:shadow-lg cursor-pointer transition-all group">
+         <div className="flex justify-between items-center mb-2">
+            <span className="font-bold text-white group-hover:text-yellow-400 decoration-yellow-400 group-hover:underline">Apex Crypto</span>
+            <span className="bg-green-600 text-white text-[10px] px-2 py-1 rounded shadow-sm font-bold uppercase tracking-widest leading-none">+ $250 Bonus</span>
+         </div>
+         <p className="text-xs text-slate-300 leading-relaxed">Trade 150+ tokens with zero hidden fees. Rated #1 exchange for 2026.</p>
+      </div>
+      <div className="bg-slate-800 p-4 rounded border border-slate-600 hover:border-yellow-500 hover:shadow-lg cursor-pointer transition-all group">
+         <div className="flex justify-between items-center mb-2">
+            <span className="font-bold text-white group-hover:text-yellow-400 decoration-yellow-400 group-hover:underline">WealthFrontier</span>
+            <span className="bg-blue-600 text-white text-[10px] px-2 py-1 rounded shadow-sm font-bold uppercase tracking-widest leading-none">High Yield</span>
+         </div>
+         <p className="text-xs text-slate-300 leading-relaxed">5.5% APY on your cash sweeps. Secure your future today.</p>
+      </div>
+       <div className="bg-slate-800 p-4 rounded border border-slate-600 hover:border-yellow-500 hover:shadow-lg cursor-pointer transition-all group">
+         <div className="flex justify-between items-center mb-2">
+            <span className="font-bold text-white group-hover:text-yellow-400 decoration-yellow-400 group-hover:underline">Gold IRA Pro</span>
+            <span className="bg-yellow-600 text-white text-[10px] px-2 py-1 rounded shadow-sm font-bold uppercase tracking-widest leading-none">Free Kit</span>
+         </div>
+         <p className="text-xs text-slate-300 leading-relaxed">Protect your retirement from inflation with physical gold holding.</p>
+      </div>
+    </div>
+  </div>
+);
+
 const YahooStyleHome = ({ onArticleSelect, setActiveTab }) => {
   const [news, setNews] = useState(() => ({
     politics: getFeedSnapshot('political', 7),
@@ -809,10 +854,51 @@ const YahooStyleHome = ({ onArticleSelect, setActiveTab }) => {
               </div>
             </div>
           </div>
+          
+          <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5 mb-6">
+            <h3 className="font-black text-xl text-slate-900 mb-4 flex items-center gap-2 pb-3 border-b border-slate-200">
+               <Clock className="w-5 h-5 text-red-600" /> The Latest Wire
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {news.politics.slice(4, 6).map((item, i) => (
+                <div key={`pol-${i}`} onClick={() => onArticleSelect(item)} className="cursor-pointer group flex flex-col">
+                  <div className="w-full h-32 rounded overflow-hidden bg-slate-100 shadow-sm mb-3">
+                     <NewsImage item={item} category="politics" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                  </div>
+                  <h4 className="font-bold text-[14px] text-slate-800 group-hover:text-blue-600 leading-snug mb-1.5 line-clamp-3">{item.title}</h4>
+                </div>
+              ))}
+              <NativeAd title="I tried this new AI portfolio manager and my jaw dropped. The results?" sponsor="WealthTech Solutions" category="finance" />
+              
+              {news.defense.slice(3, 5).map((item, i) => (
+                <div key={`def-${i}`} onClick={() => onArticleSelect(item)} className="cursor-pointer group flex flex-col">
+                  <div className="w-full h-32 rounded overflow-hidden bg-slate-100 shadow-sm mb-3">
+                     <NewsImage item={item} category="defense" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                  </div>
+                  <h4 className="font-bold text-[14px] text-slate-800 group-hover:text-green-600 leading-snug mb-1.5 line-clamp-3">{item.title}</h4>
+                </div>
+              ))}
+              
+              <NativeAd title="The 3 Credit Cards You Should Absolutely Be Using in 2026" sponsor="Credit Card Insider" category="shopping" description="Unlock massive travel rewards points today." />
+              
+              {news.conspiracy.slice(3, 5).map((item, i) => (
+                <div key={`con-${i}`} onClick={() => onArticleSelect(item)} className="cursor-pointer group flex flex-col">
+                  <div className="w-full h-32 rounded overflow-hidden bg-slate-100 shadow-sm mb-3">
+                     <NewsImage item={item} category="conspiracy" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                  </div>
+                  <h4 className="font-bold text-[14px] text-slate-800 group-hover:text-purple-600 leading-snug mb-1.5 line-clamp-3">{item.title}</h4>
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 text-center">
+              <button className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 px-8 rounded border border-slate-300 transition-colors uppercase text-[12px] tracking-widest shadow-sm hover:shadow">Load More News</button>
+            </div>
+          </div>
 
         </div>
         <div className="w-full lg:w-80 flex-shrink-0 space-y-6">
           <VibeMarket />
+          <PartnerOffers />
           <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-5">
             <h3 className="font-black text-lg uppercase text-slate-900 mb-4 border-b pb-3 tracking-wide">Trending Now</h3>
             <ul className="space-y-4">
