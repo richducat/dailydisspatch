@@ -204,6 +204,23 @@ const getTradingViewSymbol = (symbol) => {
   return TV_CRYPTO_SYMBOL_MAP[upper] || null;
 };
 
+// --- HELPER COMPONENTS ---
+
+const ProPaywall = ({ onUpgrade }) => (
+  <div className="absolute inset-0 z-20 bg-slate-950/70 backdrop-blur-[6px] flex flex-col items-center justify-center p-6 text-center border border-amber-500/20 rounded-2xl mx-2 my-2">
+    <div className="w-16 h-16 bg-gradient-to-br from-amber-400 to-amber-600 rounded-full flex items-center justify-center mb-4 shadow-[0_0_30px_rgba(251,191,36,0.3)]">
+      <Lock className="w-8 h-8 text-slate-950" />
+    </div>
+    <h3 className="text-2xl font-black text-white mb-2 tracking-tight">Daily Diss-patch <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-amber-500">PRO</span></h3>
+    <p className="text-slate-300 text-sm max-w-sm mb-6 leading-relaxed">
+      Unlock proprietary market scanners, whale transaction tracking, and algorithmic entry/exit signals.
+    </p>
+    <button onClick={onUpgrade} className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black py-3 px-8 rounded-full shadow-[0_4px_14px_0_rgba(245,158,11,0.39)] transition-transform hover:scale-105 uppercase tracking-widest text-[11px] flex items-center gap-2">
+      <Gem className="w-4 h-4 fill-current" /> Upgrade for $5/mo
+    </button>
+  </div>
+);
+
 const FinancePage = () => {
   const [view, setView] = useState('HOME');
 
@@ -947,11 +964,13 @@ const FinancePage = () => {
 
           <button
             onClick={() => setIsProMode(!isProMode)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full font-bold text-xs transition-all ${isProMode ? 'bg-amber-500/10 text-amber-400 border border-amber-500/50' : 'bg-slate-800 text-slate-400'
+            className={`flex items-center gap-2 px-5 py-2.5 rounded-full font-black text-[11px] transition-all shadow-lg ${isProMode
+                ? 'bg-amber-500/10 text-amber-400 border border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.15)]'
+                : 'bg-gradient-to-r from-amber-400 to-amber-600 text-slate-950 hover:from-amber-300 hover:to-amber-500 shadow-[0_4px_14px_0_rgba(245,158,11,0.39)] hover:scale-105'
               }`}
           >
-            {isProMode ? <Gem className="w-3 h-3 fill-current" /> : <Unlock className="w-3 h-3" />}
-            {isProMode ? 'PRO' : 'FREE'}
+            {isProMode ? <CheckCircle2 className="w-4 h-4 text-amber-400" /> : <Gem className="w-4 h-4 fill-current" />}
+            {isProMode ? 'PRO ACTIVE' : 'UPGRADE TO PRO - $5/MO'}
           </button>
         </div>
       </header>
@@ -1078,9 +1097,14 @@ const FinancePage = () => {
                 </div>
               )}
 
-              {!scanning && scannerResults.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in-up">
-                  {scannerResults.map((item) => {
+              <div className="relative">
+                {!isProMode && scannerResults.length > 0 && (
+                   <ProPaywall onUpgrade={() => setIsProMode(true)} />
+                )}
+                <div className={!isProMode && scannerResults.length > 0 ? "filter blur-md pointer-events-none select-none opacity-30 min-h-[300px] transition-all duration-700" : "transition-all duration-700"}>
+                  {!scanning && scannerResults.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in-up">
+                      {scannerResults.map((item) => {
                     const changeValue = safeNumber(item.price_change_percentage_24h, 0);
                     const currentPrice = safeNumber(item.current_price, 0);
                     const hasScore = item.score !== undefined && item.score !== null;
@@ -1122,6 +1146,8 @@ const FinancePage = () => {
                   })}
                 </div>
               )}
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -1350,13 +1376,17 @@ const FinancePage = () => {
                 <TabButton icon={<Zap className="w-3 h-3" />} label="News" active={activeTab === 'NEWS'} onClick={() => setActiveTab('NEWS')} />
               </div>
 
-              <div className="p-6 flex-1 bg-slate-900/50 overflow-y-auto min-h-[500px]">
-                {analyzing ? (
-                  <div className="h-full flex flex-col items-center justify-center text-slate-500 space-y-4">
-                    <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
-                    <p className="text-sm font-mono">Scanning Social Signals & On-Chain Data...</p>
-                  </div>
-                ) : aiInsights ? (
+              <div className="p-6 flex-1 bg-slate-900/50 overflow-y-auto min-h-[500px] relative">
+                {!isProMode && aiInsights && (
+                   <ProPaywall onUpgrade={() => setIsProMode(true)} />
+                )}
+                <div className={!isProMode && aiInsights ? "filter blur-[8px] pointer-events-none select-none opacity-20 transition-all duration-700 h-full" : "transition-all duration-700 h-full"}>
+                  {analyzing ? (
+                    <div className="h-full flex flex-col items-center justify-center text-slate-500 space-y-4">
+                      <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
+                      <p className="text-sm font-mono">Scanning Social Signals & On-Chain Data...</p>
+                    </div>
+                  ) : aiInsights ? (
                   <>
                     {activeTab === 'VIRAL' && (
                       <div className="space-y-4 animate-fade-in">
@@ -1518,6 +1548,7 @@ const FinancePage = () => {
                     )}
                   </>
                 ) : null}
+                </div>
               </div>
             </div>
           </div>
