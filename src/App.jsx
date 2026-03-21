@@ -280,40 +280,43 @@ const VALID_TABS = new Set([
 
 const NewsImage = ({ item, category, className, priority = false }) => {
   const [imgSrc, setImgSrc] = useState(null);
-  const [error, setError] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [usingFallback, setUsingFallback] = useState(false);
 
   useEffect(() => {
     const src = getArticleImage(item, category);
-    setError(false);
+    setHasError(false);
+    setUsingFallback(false);
     setImgSrc(src || null);
     if (!src) {
-      setError(true);
+      setHasError(true);
     }
-  }, [item]);
+  }, [item, category]);
 
-  if (!imgSrc || error) {
+  const handleImageError = () => {
+    if (!usingFallback && category && FALLBACK_CATEGORY_IMAGES[category]) {
+      const arr = FALLBACK_CATEGORY_IMAGES[category];
+      const hash = item.title ? item.title.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) : 0;
+      setImgSrc(arr[hash % arr.length]);
+      setUsingFallback(true);
+    } else {
+      setHasError(true);
+    }
+  };
+
+  if (!imgSrc || hasError) {
     let Icon = Globe;
     let color = 'bg-slate-200 text-slate-400';
-    if (category === 'defense') {
-      Icon = ShieldAlert;
-      color = 'bg-green-100 text-green-700';
-    }
-    if (category === 'weird') {
-      Icon = Eye;
-      color = 'bg-purple-100 text-purple-700';
-    }
-    if (category === 'finance') {
-      Icon = DollarSign;
-      color = 'bg-emerald-100 text-emerald-700';
-    }
-    if (category === 'shopping') {
-      Icon = ShoppingBag;
-      color = 'bg-pink-100 text-pink-700';
-    }
+    if (category === 'defense') { Icon = ShieldAlert; color = 'bg-green-100 text-green-700'; }
+    if (category === 'weird' || category === 'conspiracy') { Icon = Eye; color = 'bg-purple-100 text-purple-700'; }
+    if (category === 'finance') { Icon = DollarSign; color = 'bg-emerald-100 text-emerald-700'; }
+    if (category === 'shopping') { Icon = ShoppingBag; color = 'bg-pink-100 text-pink-700'; }
+    if (category === 'politics') { Icon = Activity; color = 'bg-blue-100 text-blue-700'; }
+    if (category === 'satire') { Icon = MessageSquare; color = 'bg-orange-100 text-orange-700'; }
 
     return (
       <div className={`flex items-center justify-center ${color} ${className}`}>
-        <Icon className="w-1/3 h-1/3 opacity-50" />
+        <Icon className="w-1/3 h-1/3 opacity-30" />
       </div>
     );
   }
@@ -325,9 +328,9 @@ const NewsImage = ({ item, category, className, priority = false }) => {
       className={`object-cover w-full h-full ${className}`}
       loading={priority ? 'eager' : 'lazy'}
       decoding="async"
-      fetchpriority={priority ? 'high' : 'low'}
-      referrerPolicy="strict-origin-when-cross-origin"
-      onError={() => setError(true)}
+      fetchpriority={priority ? 'high' : 'auto'}
+      referrerPolicy="no-referrer"
+      onError={handleImageError}
     />
   );
 };
