@@ -239,12 +239,23 @@ const generateSatire = (article) => {
   const opener = SATIRE_TEMPLATES.openers[Math.floor(Math.random() * SATIRE_TEMPLATES.openers.length)];
   const middle = SATIRE_TEMPLATES.middles[Math.floor(Math.random() * SATIRE_TEMPLATES.middles.length)];
   const closer = SATIRE_TEMPLATES.closers[Math.floor(Math.random() * SATIRE_TEMPLATES.closers.length)];
-  const cleanDesc = article.description ? article.description.replace(/<[^>]*>?/gm, '') : 'Details are scarce.';
+  const cleanDesc = article.description ? article.description.replace(/<[^>]*>?/gm, '') : 'Details are scarce but vibes are immaculate.';
+  
+  const p1 = `${opener} ${article.title}. The official narrative being peddled to the mainstream is simple and entirely underwhelming: "${cleanDesc}". But if you believe that, we have a digital bridge in the metaverse to sell you at a 15% APR.`;
+  
+  const p2 = `Insiders familiar with the matter (who asked to remain anonymous because they actually just made this up in the breakroom) suggest there is a much deeper layer to this event. ${middle} The socio-economic implications alone are staggering when you consider that nobody actually knows what's going on, but everyone is very angry about it on social media.`;
+  
+  const p3 = `Let's break down the data. According to a recent poll we completely fabricated, 87% of people reading this didn't read past the headline anyway. The other 13% are currently drafting a furious comment in all caps. The establishment wants you to focus on the minor details—like facts, logic, and basic physics—while ignoring the glaring truth that this whole situation is an absolute circus.`;
+  
+  const p4 = `Where do we go from here? Some experts suggest hiding your assets in offshore accounts or physical gold bullion. Others suggest simply turning off your router and walking into the woods. Whatever happens next, the one absolute certainty is that someone is going to write a very expensive, deeply unnecessary consulting book about it next quarter.`;
+  
+  const p5 = `In conclusion, ${closer} Please remember to subscribe to our newsletter so we can continue to harvest your email data and feed you these anxiety-inducing narratives. Have a great day.`;
+
   return {
     headline: `BREAKING: ${article.title} (But Make It Dramatic)`,
-    body: `${opener} ${article.title}. \n\nOfficial story: "${cleanDesc}" \n\nHowever, here at The Daily Diss-patch, we know the truth. ${middle} \n\n${closer}`,
+    body: `${p1}\n\n${p2}\n\n${p3}\n\n${p4}\n\n${p5}`,
     panicLevel: Math.floor(Math.random() * 10) + 1,
-    keywords: article.title.split(' ').filter((w) => w.length > 4).slice(0, 3)
+    keywords: article.title?.split(' ').filter((w) => w.length > 4).slice(0, 3) || ['chaotic']
   };
 };
 
