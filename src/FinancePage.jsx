@@ -1085,7 +1085,7 @@ const FinancePage = () => {
                 <ScannerButton icon={<BarChart3 className="w-6 h-6" />} title="Txn Flow" active={activeScan === 'STOCKS_OPTIONS'} onClick={() => runScanner('STOCKS_OPTIONS')} color="blue" />
               </div>
 
-              {scanning && (
+              {isProMode && scanning && (
                 <div className="flex justify-center py-8">
                   <Loader2 className="w-8 h-8 text-amber-400 animate-spin" />
                 </div>
@@ -1097,14 +1097,18 @@ const FinancePage = () => {
                 </div>
               )}
 
-              <div className="relative">
-                {!isProMode && scannerResults.length > 0 && (
+              <div className="relative mt-2">
+                {!isProMode && (
                    <ProPaywall onUpgrade={() => setIsProMode(true)} />
                 )}
-                <div className={!isProMode && scannerResults.length > 0 ? "filter blur-md pointer-events-none select-none opacity-30 min-h-[300px] transition-all duration-700" : "transition-all duration-700"}>
-                  {!scanning && scannerResults.length > 0 && (
+                <div className={!isProMode ? "filter blur-md pointer-events-none select-none opacity-30 min-h-[300px] transition-all duration-700" : "transition-all duration-700 min-h-[100px]"}>
+                  {(!isProMode || (!scanning && scannerResults.length > 0)) && (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-fade-in-up">
-                      {scannerResults.map((item) => {
+                      {(!isProMode ? [
+                        {id:1, symbol:'AIX', name:'AI Compute Node', current_price:1.24, price_change_percentage_24h:145.2, score:99},
+                        {id:2, symbol:'OMNI', name:'Omni Chain Data', current_price:0.045, price_change_percentage_24h:84.1, score:94},
+                        {id:3, symbol:'RUG', name:'Rug Pull Index', current_price:12.4, price_change_percentage_24h:-45.2, score:21}
+                      ] : scannerResults).map((item) => {
                     const changeValue = safeNumber(item.price_change_percentage_24h, 0);
                     const currentPrice = safeNumber(item.current_price, 0);
                     const hasScore = item.score !== undefined && item.score !== null;
@@ -1377,16 +1381,16 @@ const FinancePage = () => {
               </div>
 
               <div className="p-6 flex-1 bg-slate-900/50 overflow-y-auto min-h-[500px] relative">
-                {!isProMode && aiInsights && (
+                {!isProMode && (
                    <ProPaywall onUpgrade={() => setIsProMode(true)} />
                 )}
-                <div className={!isProMode && aiInsights ? "filter blur-[8px] pointer-events-none select-none opacity-20 transition-all duration-700 h-full" : "transition-all duration-700 h-full"}>
-                  {analyzing ? (
+                <div className={!isProMode ? "filter blur-[8px] pointer-events-none select-none opacity-20 transition-all duration-700 h-full" : "transition-all duration-700 h-full"}>
+                  {isProMode && analyzing ? (
                     <div className="h-full flex flex-col items-center justify-center text-slate-500 space-y-4">
                       <Loader2 className="w-10 h-10 animate-spin text-emerald-500" />
                       <p className="text-sm font-mono">Scanning Social Signals & On-Chain Data...</p>
                     </div>
-                  ) : aiInsights ? (
+                  ) : (!isProMode || aiInsights) ? (
                   <>
                     {activeTab === 'VIRAL' && (
                       <div className="space-y-4 animate-fade-in">
