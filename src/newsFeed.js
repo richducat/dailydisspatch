@@ -4,7 +4,11 @@ const FEED_CACHE_TTL_MS = 15 * 60 * 1000;
 export const RSS_FEEDS = {
   political: { url: 'https://feeds.npr.org/1014/rss.xml', name: 'Political Intel' },
   defense: { url: 'https://www.military.com/rss-feeds/content?type=news', name: 'Military Ops' },
-  conspiracy: { url: 'https://www.upi.com/rss/Odd_News/', name: 'The Files' }
+  conspiracy: { url: 'https://www.upi.com/rss/Odd_News/', name: 'The Files' },
+  tech: { url: 'https://techcrunch.com/feed/', name: 'TechCrunch' },
+  finance: { url: 'https://search.cnbc.com/rs/search/combinedcms/view.xml?partnerId=wrss01&id=10000664', name: 'CNBC Finance' },
+  world: { url: 'http://feeds.bbci.co.uk/news/world/rss.xml', name: 'BBC World' },
+  science: { url: 'https://www.sciencedaily.com/rss/top/science.xml', name: 'Science Daily' }
 };
 
 const FEED_FALLBACKS = {
@@ -219,7 +223,7 @@ const fetchFeedFromRemote = async (feedKey) => {
 };
 
 export const fetchFeedItems = async (feedKey, options = {}) => {
-  const { limit = 6 } = options;
+  const { limit = 50 } = options;
   const cachedItems = getFeedSnapshot(feedKey);
 
   const freshCache = readCachedFeed(feedKey);

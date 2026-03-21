@@ -94,6 +94,22 @@ const FALLBACK_CATEGORY_IMAGES = {
     'https://images.unsplash.com/photo-1497215848147-3a95d117a8e5?w=800&auto=format&fit=crop&q=60',
     'https://images.unsplash.com/photo-1523995408711-2ebf49e1e2d4?w=800&auto=format&fit=crop&q=60',
     'https://images.unsplash.com/photo-1516222338250-863216ce01ea?w=800&auto=format&fit=crop&q=60'
+  ],
+  tech: [
+    'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&auto=format&fit=crop&q=60'
+  ],
+  finance: [
+    'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?w=800&auto=format&fit=crop&q=60'
+  ],
+  world: [
+    'https://images.unsplash.com/photo-1521295121783-8a321d551ad2?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop&q=60'
+  ],
+  science: [
+    'https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=800&auto=format&fit=crop&q=60',
+    'https://images.unsplash.com/photo-1507413245164-6160d8298b31?w=800&auto=format&fit=crop&q=60'
   ]
 };
 
@@ -134,56 +150,27 @@ const GENERATED_ADVERSARIES = [
   { name: 'Standard Time', reason: 'Dark at 4 PM', status: 'Depressing', icon: '⏰', reaction: 'Making you tired' }
 ];
 
-const SATIRE_HEADLINES = [
-  {
-    id: 1,
-    title: "AI Startup Promises to Disrupt Disruption, Secures $4B at 'Vibes-Based' Valuation",
-    category: 'Technology',
-    severity: 'high',
-    description: "The founders admit they don't have a product yet, but they have a really cool logo and a ping-pong table. Investors say they are 'thrilled'.",
-    link: '#'
-  },
-  {
-    id: 2,
-    title: "Politician Bravely Takes Stance Unanimously Supported by Donors",
-    category: 'Political',
-    severity: 'medium',
-    description: "In a stunning display of courage, the senator announced full support for the exact thing written on the back of a very large check.",
-    link: '#'
-  },
-  {
-    id: 3,
-    title: "Local Man Discovers 14th Subscription Service He Forgot to Cancel",
-    category: 'Economy',
-    severity: 'low',
-    description: "He hasn't watched 'Quibi' in years, but $8.99 has been quietly vanishing from his account every month to fund a server in an empty warehouse.",
-    link: '#'
-  },
-  {
-    id: 4,
-    title: "Stock Market Plummets Because CEO Looked 'Kinda Tired' on Earnings Call",
-    category: 'Finance',
-    severity: 'high',
-    description: "Analysts downgraded the stock entirely because the CEO sighed heavily before sipping water. Trillions erased from global economy.",
-    link: '#'
-  },
-  {
-    id: 5,
-    title: "New Smart Fridge Refuses to Open Until You Apologize to It",
-    category: 'Technology',
-    severity: 'medium',
-    description: "The appliance demands emotional intelligence before dispensing ice. User manuals say 'just tell it you appreciate its cooling efforts.'",
-    link: '#'
-  },
-  {
-    id: 6,
-    title: "Corporate 'Mental Health Day' Mandatory, Features 4 Hours of Trust Falls",
-    category: 'Business',
-    severity: 'high',
-    description: "Employees report feeling substantially more stressed after being forced to catch Steve from Accounting while instrumental acoustic pop plays.",
-    link: '#'
-  }
-];
+const SATIRE_SUBJECTS = ["Tech Billionaire", "Local Man", "Politician", "New AI Model", "Smart Fridge", "Corporate HR", "Finance Bro", "HOA President", "Florida Man", "Gen Z Intern", "Local Algorithm", "Influencer", "CEO", "My Dentist"];
+const SATIRE_ACTIONS = ["accidentally deletes", "vows to disrupt", "forgets to cancel", "demands apology from", "invests $40B into", "refuses to acknowledge", "writes 40-page manifesto about", "gets into physical altercation with", "rebrands as", "attempts to unionize against", "blames supply chain for", "launches NFT collection based on"];
+const SATIRE_TARGETS = ["the concept of time", "a moderately sized puddle", "14 different subscription services", "a rival's tweet", "the concept of sleep", "organic avocados", "the breakroom microwave", "a sentient Roomba", "the entire middle class", "Math", "the concept of linear progression"];
+
+const generateInfiniteSatire = (count = 100) => {
+  return Array.from({ length: count }).map((_, i) => {
+    const sub = SATIRE_SUBJECTS[Math.floor(Math.random() * SATIRE_SUBJECTS.length)];
+    const act = SATIRE_ACTIONS[Math.floor(Math.random() * SATIRE_ACTIONS.length)];
+    const tar = SATIRE_TARGETS[Math.floor(Math.random() * SATIRE_TARGETS.length)];
+    return {
+      id: `satire-${i}`,
+      title: `${sub} ${act} ${tar}`,
+      category: 'satire',
+      severity: 'medium',
+      description: `In a move that surprised absolutely no one, ${sub.toLowerCase()} took drastic measures today regarding ${tar}. Experts believe this is essentially a very expensive mistake masquerading as innovation.`,
+      link: '#'
+    };
+  });
+};
+
+const SATIRE_HEADLINES = generateInfiniteSatire(100);
 
 const POLL_OPTIONS = [
   { text: 'Blame the algorithm', votes: 45 },
@@ -736,23 +723,29 @@ const PartnerOffers = () => (
 
 const YahooStyleHome = ({ onArticleSelect, setActiveTab }) => {
   const [news, setNews] = useState(() => ({
-    politics: getFeedSnapshot('political', 7),
-    defense: getFeedSnapshot('defense', 5),
-    conspiracy: getFeedSnapshot('conspiracy', 5)
+    politics: getFeedSnapshot('political', 15),
+    defense: getFeedSnapshot('defense', 15),
+    conspiracy: getFeedSnapshot('conspiracy', 15),
+    tech: [], finance: [], world: [], science: []
   }));
+  const [visibleWireCount, setVisibleWireCount] = useState(12);
 
   useEffect(() => {
     let cancelled = false;
 
     const fetchAll = async () => {
-      const [politics, defense, conspiracy] = await Promise.all([
-        fetchFeedItems('political', { limit: 7 }),
-        fetchFeedItems('defense', { limit: 5 }),
-        fetchFeedItems('conspiracy', { limit: 5 })
+      const [politics, defense, conspiracy, tech, finance, world, science] = await Promise.all([
+        fetchFeedItems('political', { limit: 50 }),
+        fetchFeedItems('defense', { limit: 50 }),
+        fetchFeedItems('conspiracy', { limit: 50 }),
+        fetchFeedItems('tech', { limit: 50 }),
+        fetchFeedItems('finance', { limit: 50 }),
+        fetchFeedItems('world', { limit: 50 }),
+        fetchFeedItems('science', { limit: 50 })
       ]);
 
       if (!cancelled) {
-        setNews({ politics, defense, conspiracy });
+        setNews({ politics, defense, conspiracy, tech, finance, world, science });
       }
     };
 
@@ -766,6 +759,30 @@ const YahooStyleHome = ({ onArticleSelect, setActiveTab }) => {
       cancelled = true;
     };
   }, []);
+
+  const mixedWire = React.useMemo(() => {
+    const all = [
+      ...(news.politics || []).slice(6),
+      ...(news.defense || []).slice(5),
+      ...(news.conspiracy || []).slice(5),
+      ...(news.tech || []),
+      ...(news.finance || []),
+      ...(news.world || []),
+      ...(news.science || []),
+      ...SATIRE_HEADLINES.slice(3) 
+    ];
+    let mixed = [];
+    const len = all.length;
+    for(let i=0; i<len; i++) {
+        mixed.push(all[i]);
+    }
+    // Pseudo-shuffle deterministically so it doesn't flicker endlessly
+    return mixed.sort((a,b) => (a.title?.length || 0) - (b.title?.length || 0)).reverse();
+  }, [news]);
+
+  const handleLoadMore = () => {
+    setVisibleWireCount(prev => prev + 12);
+  };
 
   return (
     <div className="container mx-auto px-4 py-6 max-w-7xl animate-in fade-in slide-in-from-bottom-2 duration-700">
@@ -860,39 +877,27 @@ const YahooStyleHome = ({ onArticleSelect, setActiveTab }) => {
                <Clock className="w-5 h-5 text-red-600" /> The Latest Wire
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {news.politics.slice(4, 6).map((item, i) => (
-                <div key={`pol-${i}`} onClick={() => onArticleSelect(item)} className="cursor-pointer group flex flex-col">
-                  <div className="w-full h-32 rounded overflow-hidden bg-slate-100 shadow-sm mb-3">
-                     <NewsImage item={item} category="politics" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-                  </div>
-                  <h4 className="font-bold text-[14px] text-slate-800 group-hover:text-blue-600 leading-snug mb-1.5 line-clamp-3">{item.title}</h4>
-                </div>
-              ))}
-              <NativeAd title="I tried this new AI portfolio manager and my jaw dropped. The results?" sponsor="WealthTech Solutions" category="finance" />
-              
-              {news.defense.slice(3, 5).map((item, i) => (
-                <div key={`def-${i}`} onClick={() => onArticleSelect(item)} className="cursor-pointer group flex flex-col">
-                  <div className="w-full h-32 rounded overflow-hidden bg-slate-100 shadow-sm mb-3">
-                     <NewsImage item={item} category="defense" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-                  </div>
-                  <h4 className="font-bold text-[14px] text-slate-800 group-hover:text-green-600 leading-snug mb-1.5 line-clamp-3">{item.title}</h4>
-                </div>
-              ))}
-              
-              <NativeAd title="The 3 Credit Cards You Should Absolutely Be Using in 2026" sponsor="Credit Card Insider" category="shopping" description="Unlock massive travel rewards points today." />
-              
-              {news.conspiracy.slice(3, 5).map((item, i) => (
-                <div key={`con-${i}`} onClick={() => onArticleSelect(item)} className="cursor-pointer group flex flex-col">
-                  <div className="w-full h-32 rounded overflow-hidden bg-slate-100 shadow-sm mb-3">
-                     <NewsImage item={item} category="conspiracy" className="w-full h-full object-cover transition-transform group-hover:scale-105" />
-                  </div>
-                  <h4 className="font-bold text-[14px] text-slate-800 group-hover:text-purple-600 leading-snug mb-1.5 line-clamp-3">{item.title}</h4>
-                </div>
+              {mixedWire.slice(0, visibleWireCount).map((item, i) => (
+                 <React.Fragment key={`wire-${i}`}>
+                   <div onClick={() => onArticleSelect(item)} className="cursor-pointer group flex flex-col h-full">
+                     <div className="w-full h-32 rounded overflow-hidden bg-slate-100 shadow-sm mb-3 flex-shrink-0">
+                        <NewsImage item={item} category={item.category || ['tech', 'finance', 'world', 'science'][i % 4]} className="w-full h-full object-cover transition-transform group-hover:scale-105" />
+                     </div>
+                     <h4 className="font-bold text-[14px] text-slate-800 group-hover:text-blue-600 leading-snug mb-1.5 line-clamp-3">{item.title}</h4>
+                   </div>
+                   {(i + 1) % 5 === 0 && (
+                     <NativeAd title={
+                        ["I tried this new AI portfolio manager...", "The 3 Credit Cards You Should Be Using in 2026", "What Wall Street Doesn't Want You to Know"][Math.floor(((i + 1) / 5) % 3)]
+                     } sponsor="Featured Partner" category="finance" />
+                   )}
+                 </React.Fragment>
               ))}
             </div>
-            <div className="mt-6 text-center">
-              <button className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 px-8 rounded border border-slate-300 transition-colors uppercase text-[12px] tracking-widest shadow-sm hover:shadow">Load More News</button>
-            </div>
+            {visibleWireCount < mixedWire.length && (
+              <div className="mt-8 text-center pt-4 border-t border-slate-100">
+                <button onClick={handleLoadMore} className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold py-3 px-8 rounded border border-slate-300 transition-colors uppercase text-[12px] tracking-widest shadow-sm hover:shadow-md cursor-pointer">Load More News</button>
+              </div>
+            )}
           </div>
 
         </div>
