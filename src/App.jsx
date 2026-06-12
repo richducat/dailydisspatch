@@ -608,14 +608,16 @@ const PrivacyPage = () => (
   <div className="container mx-auto px-4 py-8 max-w-3xl animate-in fade-in">
     <h2 className="text-3xl font-black mb-6">Privacy Policy</h2>
     <div className="prose prose-slate text-sm">
-      <p><strong>Last Updated: October 24, 2024</strong></p>
-      <p>At The Daily Diss-patch, we take your privacy seriously. Mostly because we don't know how to track you.</p>
+      <p><strong>Last Updated: June 12, 2026</strong></p>
+      <p>This summary describes how dailydisspatch.com handles information. The full policy lives at <a href="/privacy-policy/" className="text-blue-500 underline">dailydisspatch.com/privacy-policy/</a>.</p>
       <h3>1. Information We Collect</h3>
-      <p>We collect standard log data and general usage patterns to improve the site. If you click on affiliate links, third parties may collect data.</p>
-      <h3>2. Cookies</h3>
-      <p>We use cookies to ensure you get the best experience. If you disable cookies, the "Political Zoo" feature might get grumpy.</p>
-      <h3>3. Third-Party Links</h3>
-      <p>Our site contains links to other websites (like The Hill, Military.com, and BestDealsOnline.com). We are not responsible for their privacy practices.</p>
+      <p>We do not require accounts or directly collect personal information. Standard technical data (IP address, browser type, pages viewed) is processed by the third-party services below.</p>
+      <h3>2. Analytics &amp; Advertising</h3>
+      <p>We use Google Analytics 4 for traffic measurement and Google AdSense to display ads. Third-party vendors, including Google, use cookies to serve ads based on your prior visits to this and other websites. Opt out of personalized ads at <a href="https://www.google.com/settings/ads" className="text-blue-500 underline">Google Ads Settings</a> or <a href="https://www.aboutads.info" className="text-blue-500 underline">aboutads.info</a>.</p>
+      <h3>3. Cookies</h3>
+      <p>You can refuse or delete cookies in your browser settings; the site will still work without them.</p>
+      <h3>4. Affiliate &amp; Third-Party Links</h3>
+      <p>Some links are affiliate links, and external sites operate under their own privacy practices. Questions: <a href="mailto:contact@dailydisspatch.com" className="text-blue-500 underline">contact@dailydisspatch.com</a>.</p>
     </div>
   </div>
 );
@@ -656,8 +658,8 @@ const Footer = ({ setActiveTab }) => (
         <h5 className="font-bold uppercase text-slate-500 mb-3">Company</h5>
         <nav aria-label="Footer company info">
           <ul className="space-y-2">
-            <li onClick={() => setActiveTab('about')} className="hover:text-blue-400 cursor-pointer">About Us</li>
-            <li onClick={() => setActiveTab('about')} className="hover:text-blue-400 cursor-pointer">Contact</li>
+            <li><a href="/about/" className="hover:text-blue-400">About Us</a></li>
+            <li><a href="/contact/" className="hover:text-blue-400">Contact</a></li>
             <li onClick={() => setActiveTab('about')} className="hover:text-blue-400 cursor-pointer">Careers (Lol)</li>
           </ul>
         </nav>
@@ -666,9 +668,9 @@ const Footer = ({ setActiveTab }) => (
         <h5 className="font-bold uppercase text-slate-500 mb-3">Legal</h5>
         <nav aria-label="Footer legal links">
           <ul className="space-y-2">
-            <li onClick={() => setActiveTab('privacy')} className="hover:text-blue-400 cursor-pointer">Privacy Policy</li>
-            <li onClick={() => setActiveTab('terms')} className="hover:text-blue-400 cursor-pointer">Terms of Service</li>
-            <li onClick={() => setActiveTab('privacy')} className="hover:text-blue-400 cursor-pointer">Cookie Policy</li>
+            <li><a href="/privacy-policy/" className="hover:text-blue-400">Privacy Policy</a></li>
+            <li><a href="/terms/" className="hover:text-blue-400">Terms of Service</a></li>
+            <li><a href="/privacy-policy/" className="hover:text-blue-400">Cookie Policy</a></li>
           </ul>
         </nav>
       </div>
