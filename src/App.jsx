@@ -658,6 +658,7 @@ const Footer = ({ setActiveTab }) => (
         <h5 className="font-bold uppercase text-slate-500 mb-3">Company</h5>
         <nav aria-label="Footer company info">
           <ul className="space-y-2">
+            <li><a href="/articles/" className="hover:text-blue-400">Article Archive</a></li>
             <li><a href="/about/" className="hover:text-blue-400">About Us</a></li>
             <li><a href="/contact/" className="hover:text-blue-400">Contact</a></li>
             <li onClick={() => setActiveTab('about')} className="hover:text-blue-400 cursor-pointer">Careers (Lol)</li>
