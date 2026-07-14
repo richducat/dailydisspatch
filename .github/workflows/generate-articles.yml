@@ -34,6 +34,8 @@ jobs:
           cache: npm
       - name: Generate articles
         run: node scripts/generate-articles.mjs --count ${{ github.event.inputs.count || '2' }}
+      - name: Validate indexability
+        run: npm run check:seo
       - name: Commit new articles
         run: |
           git config user.name "diss-patch-bot"

@@ -15,6 +15,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const DATA = join(ROOT, 'data', 'articles.json');
 const OUT = join(ROOT, 'public', 'articles');
 const SITE = 'https://dailydisspatch.com';
+const DEFAULT_IMAGE = `${SITE}/og-image.svg`;
 const COUNT = (() => { const i = process.argv.indexOf('--count'); return i > -1 ? parseInt(process.argv[i + 1], 10) : 2; })();
 
 // ---------- The voice (lifted from the live satire engine, expanded) ----------
@@ -67,20 +68,25 @@ const build = (seedStr) => {
 const slugify = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70);
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const metaDescription = (a) => `Satire: ${a.title}. Original humor and commentary from The Daily Diss-patch.`.slice(0, 158);
 
 const STYLE = `<style>body{background:#020617;color:#cbd5e1;font-family:Georgia,serif;max-width:720px;margin:0 auto;padding:40px 20px;line-height:1.75}h1,h2{color:#f8fafc;font-family:Arial,Helvetica,sans-serif;line-height:1.2}a{color:#60a5fa}header a{font-weight:bold;text-decoration:none;font-size:14px;letter-spacing:1px;text-transform:uppercase}.kicker{color:#f59e0b;font-family:Arial,sans-serif;font-size:12px;letter-spacing:2px;text-transform:uppercase}.meta{color:#64748b;font-size:14px;font-family:Arial,sans-serif}.satire{background:#1e293b;border-left:4px solid #f59e0b;padding:10px 14px;font-size:13px;font-family:Arial,sans-serif;color:#94a3b8;margin:24px 0}.more{border-top:1px solid #1e293b;margin-top:40px;padding-top:16px}footer{margin-top:48px;border-top:1px solid #1e293b;padding-top:16px;font-size:13px;color:#64748b}</style>`;
 const NAV = '<header><a href="/">&larr; The Daily Diss-patch</a> &nbsp;&middot;&nbsp; <a href="/articles/">All Articles</a></header>';
-const FOOT = '<footer><a href="/about/">About</a> &middot; <a href="/contact/">Contact</a> &middot; <a href="/privacy-policy/">Privacy Policy</a> &middot; <a href="/terms/">Terms</a><br>&copy; 2026 The Daily Diss-patch. Satire and commentary. Not affiliated with reality.</footer>';
+const FOOT = '<footer><a href="/articles/">Articles</a> &middot; <a href="/techkombat/">Tech Kombat</a> &middot; <a href="/about/">About</a> &middot; <a href="/contact/">Contact</a> &middot; <a href="/privacy-policy/">Privacy Policy</a> &middot; <a href="/terms/">Terms</a><br>&copy; 2026 The Daily Diss-patch. Satire and commentary. Not affiliated with reality.</footer>';
 const DISCLAIMER = '<div class="satire"><strong>SATIRE:</strong> This article is fiction and humor. Any resemblance to real persons or events is coincidental and played for laughs. Nothing here is news reporting or advice.</div>';
 
 const renderArticle = (a, others) => {
-  const ld = { '@context': 'https://schema.org', '@type': 'Article', headline: a.title, description: a.dek, datePublished: a.date, dateModified: a.date, author: { '@type': 'Organization', name: 'The Daily Diss-patch' }, publisher: { '@type': 'Organization', name: 'The Daily Diss-patch', logo: { '@type': 'ImageObject', url: `${SITE}/favicon.svg` } }, mainEntityOfPage: `${SITE}/articles/${a.slug}.html`, isAccessibleForFree: true, genre: 'satire' };
+  const canonical = `${SITE}/articles/${a.slug}.html`;
+  const description = metaDescription(a);
+  const ld = { '@context': 'https://schema.org', '@type': 'Article', headline: a.title, description, image: DEFAULT_IMAGE, datePublished: a.date, dateModified: a.date, author: { '@type': 'Organization', name: 'The Daily Diss-patch', url: `${SITE}/about/` }, publisher: { '@type': 'Organization', name: 'The Daily Diss-patch', url: SITE, logo: { '@type': 'ImageObject', url: `${SITE}/favicon.svg` } }, mainEntityOfPage: canonical, isAccessibleForFree: true, genre: 'satire' };
   const more = others.map((o) => `<li><a href="/articles/${o.slug}.html">${esc(o.title)}</a></li>`).join('');
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>${esc(a.title)} | The Daily Diss-patch</title>
-<meta name="description" content="${esc(a.dek)}">
-<link rel="canonical" href="${SITE}/articles/${a.slug}.html">
-<meta property="og:type" content="article"><meta property="og:title" content="${esc(a.title)}"><meta property="og:description" content="${esc(a.dek)}"><meta property="og:url" content="${SITE}/articles/${a.slug}.html"><meta property="og:site_name" content="The Daily Diss-patch">
+<meta name="description" content="${esc(description)}">
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="${canonical}"><link rel="alternate" type="application/rss+xml" title="The Daily Diss-patch" href="${SITE}/feed.xml">
+<meta property="og:type" content="article"><meta property="og:title" content="${esc(a.title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${canonical}"><meta property="og:image" content="${DEFAULT_IMAGE}"><meta property="og:site_name" content="The Daily Diss-patch">
+<meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${esc(a.title)}"><meta name="twitter:description" content="${esc(description)}"><meta name="twitter:image" content="${DEFAULT_IMAGE}">
 <script type="application/ld+json">${JSON.stringify(ld)}</script>${STYLE}</head><body>${NAV}
 <p class="kicker">${a.category} &middot; Satire</p>
 <h1>${esc(a.title)}</h1>
@@ -96,7 +102,8 @@ const renderIndex = (articles) => {
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Articles | The Daily Diss-patch</title>
 <meta name="description" content="The full archive of original satire and commentary from The Daily Diss-patch.">
-<link rel="canonical" href="${SITE}/articles/">${STYLE}</head><body>${NAV}
+<meta name="robots" content="index, follow, max-image-preview:large">
+<link rel="canonical" href="${SITE}/articles/"><link rel="alternate" type="application/rss+xml" title="The Daily Diss-patch" href="${SITE}/feed.xml">${STYLE}</head><body>${NAV}
 <h1>The Archive</h1>
 <p>Original satire, dispatched daily. ${articles.length} articles and counting.</p>
 ${DISCLAIMER}
@@ -105,10 +112,11 @@ ${FOOT}</body></html>`;
 };
 
 const renderSitemap = (articles) => {
-  const today = new Date().toISOString().slice(0, 10);
+  const latestArticleDate = articles[0]?.date || '2026-04-15';
   const fixed = [
-    { loc: `${SITE}/`, lastmod: today, freq: 'daily', pri: '1.0' },
-    { loc: `${SITE}/articles/`, lastmod: today, freq: 'daily', pri: '0.8' },
+    { loc: `${SITE}/`, lastmod: latestArticleDate, freq: 'daily', pri: '1.0' },
+    { loc: `${SITE}/articles/`, lastmod: latestArticleDate, freq: 'daily', pri: '0.8' },
+    { loc: `${SITE}/techkombat/`, lastmod: '2026-03-20', freq: 'monthly', pri: '0.5' },
     { loc: `${SITE}/about/`, lastmod: '2026-06-12', freq: 'monthly', pri: '0.5' },
     { loc: `${SITE}/contact/`, lastmod: '2026-06-12', freq: 'monthly', pri: '0.4' },
     { loc: `${SITE}/privacy-policy/`, lastmod: '2026-06-12', freq: 'monthly', pri: '0.3' },
@@ -117,6 +125,27 @@ const renderSitemap = (articles) => {
   const urls = fixed.map((u) => `  <url><loc>${u.loc}</loc><lastmod>${u.lastmod}</lastmod><changefreq>${u.freq}</changefreq><priority>${u.pri}</priority></url>`)
     .concat(articles.map((a) => `  <url><loc>${SITE}/articles/${a.slug}.html</loc><lastmod>${a.date}</lastmod><changefreq>yearly</changefreq><priority>0.6</priority></url>`));
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`;
+};
+
+const renderFeed = (articles) => {
+  const items = articles.slice(0, 50).map((a) => `  <item>
+    <title>${esc(a.title)}</title>
+    <link>${SITE}/articles/${a.slug}.html</link>
+    <guid isPermaLink="true">${SITE}/articles/${a.slug}.html</guid>
+    <pubDate>${new Date(`${a.date}T12:00:00Z`).toUTCString()}</pubDate>
+    <description>${esc(a.dek)}</description>
+  </item>`).join('\n');
+  const buildDate = articles[0]?.date ? new Date(`${articles[0].date}T12:00:00Z`).toUTCString() : new Date(0).toUTCString();
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0"><channel>
+  <title>The Daily Diss-patch</title>
+  <link>${SITE}/articles/</link>
+  <description>Original satire and commentary from The Daily Diss-patch.</description>
+  <language>en-us</language>
+  <lastBuildDate>${buildDate}</lastBuildDate>
+${items}
+</channel></rss>
+`;
 };
 
 // ---------- main ----------
@@ -137,12 +166,14 @@ while (made < COUNT && attempt < COUNT * 30) {
   made += 1;
 }
 
-// re-render every article so "More from" links stay fresh
-for (const a of state.articles) {
-  const others = state.articles.filter((o) => o.slug !== a.slug).slice(0, 4);
+// Link each article to the next four older stories. This stays stable when new
+// stories are prepended, avoiding a full-site rewrite and false freshness signal.
+for (const [index, a] of state.articles.entries()) {
+  const others = state.articles.slice(index + 1, index + 5);
   writeFileSync(join(OUT, `${a.slug}.html`), renderArticle(a, others));
 }
 writeFileSync(join(OUT, 'index.html'), renderIndex(state.articles));
 writeFileSync(join(ROOT, 'public', 'sitemap.xml'), renderSitemap(state.articles));
+writeFileSync(join(ROOT, 'public', 'feed.xml'), renderFeed(state.articles));
 writeFileSync(DATA, JSON.stringify(state, null, 2));
 console.log(`Generated ${made} new article(s). Total: ${state.articles.length}.`);
