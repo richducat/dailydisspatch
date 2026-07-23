@@ -98,16 +98,21 @@ ${FOOT}</body></html>`;
 };
 
 const renderIndex = (articles) => {
-  const items = articles.map((a) => `<li style="margin-bottom:18px"><a href="/articles/${a.slug}.html"><strong>${esc(a.title)}</strong></a><br><span class="meta">${a.category} &middot; ${a.date}</span><br>${esc(a.dek)}</li>`).join('\n');
+  const item = (a) => `<li style="margin-bottom:18px"><a href="/articles/${a.slug}.html"><strong>${esc(a.title)}</strong></a><br><span class="meta">${a.category} &middot; ${a.date}</span><br>${esc(a.dek)}</li>`;
+  const featured = articles.filter((a) => a.featured);
+  const rest = articles.filter((a) => !a.featured);
+  const featuredBlock = featured.length
+    ? `<h2>Featured</h2>\n<ul style="list-style:none;padding:0">${featured.map(item).join('\n')}</ul>\n<h2>Latest</h2>`
+    : '';
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Articles | The Daily Diss-patch</title>
 <meta name="description" content="The full archive of original satire and commentary from The Daily Diss-patch.">
-<meta name="robots" content="index, follow, max-image-preview:large">
 <link rel="canonical" href="${SITE}/articles/"><link rel="alternate" type="application/rss+xml" title="The Daily Diss-patch" href="${SITE}/feed.xml">${STYLE}</head><body>${NAV}
 <h1>The Archive</h1>
 <p>Original satire, dispatched daily. ${articles.length} articles and counting.</p>
 ${DISCLAIMER}
-<ul style="list-style:none;padding:0">${items}</ul>
+${featuredBlock}
+<ul style="list-style:none;padding:0">${rest.map(item).join('\n')}</ul>
 ${FOOT}</body></html>`;
 };
 
@@ -175,5 +180,11 @@ for (const [index, a] of state.articles.entries()) {
 writeFileSync(join(OUT, 'index.html'), renderIndex(state.articles));
 writeFileSync(join(ROOT, 'public', 'sitemap.xml'), renderSitemap(state.articles));
 writeFileSync(join(ROOT, 'public', 'feed.xml'), renderFeed(state.articles));
+const manifest = state.articles
+  .slice()
+  .sort((a, b) => (b.featured === true) - (a.featured === true))
+  .slice(0, 30)
+  .map((a) => ({ slug: a.slug, title: a.title, category: a.category, date: a.date, featured: !!a.featured }));
+writeFileSync(join(OUT, 'index.json'), JSON.stringify(manifest));
 writeFileSync(DATA, JSON.stringify(state, null, 2));
 console.log(`Generated ${made} new article(s). Total: ${state.articles.length}.`);
