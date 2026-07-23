@@ -636,6 +636,37 @@ const TermsPage = () => (
   </div>
 );
 
+const ArchiveStrip = () => {
+  const [items, setItems] = useState([]);
+  useEffect(() => {
+    fetch('/articles/index.json')
+      .then((r) => (r.ok ? r.json() : []))
+      .then((list) => setItems(Array.isArray(list) ? list.slice(0, 8) : []))
+      .catch(() => {});
+  }, []);
+  if (!items.length) return null;
+  return (
+    <section className="bg-slate-950 border-t border-slate-800 py-8" aria-label="From the archive">
+      <div className="container mx-auto px-4">
+        <div className="flex items-baseline justify-between mb-4">
+          <h2 className="text-xl font-black text-white uppercase tracking-wide">From the Archive</h2>
+          <a href="/articles/" className="text-blue-400 text-sm hover:underline">All articles &rarr;</a>
+        </div>
+        <ul className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+          {items.map((a) => (
+            <li key={a.slug} className="text-slate-300">
+              <a href={'/articles/' + a.slug + '.html'} className="hover:text-blue-400">
+                {a.featured ? '\u2605 ' : ''}{a.title}
+              </a>
+              <span className="text-slate-600 text-xs ml-2">{a.category}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+};
+
 const Footer = ({ setActiveTab }) => (
   <footer className="bg-slate-900 text-white py-8 mt-12 border-t border-slate-800" role="contentinfo">
     <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-4 gap-8 text-sm">
@@ -1399,6 +1430,7 @@ const App = () => {
         )}
       </main>
 
+      {!selectedArticle && <ArchiveStrip />}
       {!selectedArticle && <Footer setActiveTab={handleTabChange} />}
       <PoliticalZoo />
     </div>
