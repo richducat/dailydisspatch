@@ -7,7 +7,7 @@ on:
     inputs:
       count:
         description: 'How many articles to generate'
-        default: '2'
+        default: '1'
 
 permissions:
   contents: write
@@ -33,7 +33,7 @@ jobs:
           node-version: 20
           cache: npm
       - name: Generate articles
-        run: node scripts/generate-articles.mjs --count ${{ github.event.inputs.count || '2' }}
+        run: node scripts/generate-articles.mjs --count ${{ github.event.inputs.count || '1' }}
       - name: Validate indexability
         run: npm run check:seo
       - name: Commit new articles
