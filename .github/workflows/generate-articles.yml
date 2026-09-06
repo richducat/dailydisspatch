@@ -33,7 +33,15 @@ jobs:
           node-version: 20
           cache: npm
       - name: Generate articles
-        run: node scripts/generate-articles.mjs --count ${{ github.event.inputs.count || '1' }}
+        env:
+          ARTICLE_COUNT: ${{ github.event.inputs.count || '1' }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$ARTICLE_COUNT" =~ ^[1-9][0-9]*$ ]]; then
+            echo 'Article count must be a positive integer.' >&2
+            exit 1
+          fi
+          node scripts/generate-articles.mjs --count "$ARTICLE_COUNT"
       - name: Validate indexability
         run: npm run check:seo
       - name: Commit new articles
