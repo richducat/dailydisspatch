@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "check:seo": "node scripts/check-indexability.mjs"
+    "check:seo": "node scripts/check-indexability.mjs",
+    "postbuild": "node scripts/add-static-analytics.mjs",
+    "check:analytics": "node --test scripts/test-analytics.mjs"
   },
   "dependencies": {
     "lucide-react": "^0.462.0",

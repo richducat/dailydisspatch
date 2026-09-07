@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 
-const ANALYTICS_ID = 'G-E90B5KHBVV';
 const ADSENSE_CLIENT = 'ca-pub-9665484869013517';
 const LIVE_HOSTS = new Set(['dailydisspatch.com', 'www.dailydisspatch.com']);
 
@@ -69,20 +68,6 @@ const ThirdPartyBoot = () => {
 
     const boot = () => {
       if (disposed) return;
-
-      window.dataLayer = window.dataLayer || [];
-      window.gtag = window.gtag || function gtag() {
-        window.dataLayer.push(arguments);
-      };
-
-      injectScript({
-        src: `https://www.googletagmanager.com/gtag/js?id=${ANALYTICS_ID}`
-      });
-
-      window.gtag('js', new Date());
-      window.gtag('config', ANALYTICS_ID, {
-        anonymize_ip: true
-      });
 
       const adsScript = injectScript({
         src: `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`,
