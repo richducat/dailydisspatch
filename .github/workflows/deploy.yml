@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -32,9 +33,15 @@ jobs:
       - name: Build
         run: npm run build
       - name: Upload artifact
+        id: pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+      - name: Wait for Pages artifact discovery
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAGES_ARTIFACT_ID: ${{ steps.pages.outputs.artifact_id }}
+        run: node scripts/wait-for-pages-artifact.mjs
 
   deploy:
     needs: build

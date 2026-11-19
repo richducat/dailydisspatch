@@ -10,6 +10,7 @@ on:
         default: '1'
 
 permissions:
+  actions: read
   contents: write
   pages: write
   id-token: write
@@ -19,11 +20,8 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  generate-and-deploy:
+  generate-and-build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -56,9 +54,23 @@ jobs:
       - name: Build
         run: npm run build
       - name: Upload artifact
+        id: pages
         uses: actions/upload-pages-artifact@v3
         with:
           path: dist
+      - name: Wait for Pages artifact discovery
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PAGES_ARTIFACT_ID: ${{ steps.pages.outputs.artifact_id }}
+        run: node scripts/wait-for-pages-artifact.mjs
+
+  deploy:
+    needs: generate-and-build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
